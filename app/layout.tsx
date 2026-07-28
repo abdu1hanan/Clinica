@@ -19,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col`}>
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className={`${inter.variable} bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col`} suppressHydrationWarning>
         <UsageBanner />
         {children}
       </body>

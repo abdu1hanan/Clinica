@@ -2,24 +2,60 @@
 
 @layer base {
   body {
-    background-color: #020617;
-    color: #f8fafc;
+    background-color: #030712;
+    color: #f3f4f6;
     font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   }
 }
 
-/* Custom scrollbar */
+/* Premium Medical SaaS Theme Utilities */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.45);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel:hover {
+  border-color: rgba(20, 184, 166, 0.15);
+  box-shadow: 0 10px 30px -10px rgba(20, 184, 166, 0.08);
+}
+
+.clinical-grid {
+  background-image: 
+    linear-gradient(to right, rgba(20, 184, 166, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 184, 166, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: #030712;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: #1f2937;
+  border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #374151;
 }
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1.0); }
+}
+
+.wave-bar {
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.wave-bar:nth-child(2) { animation-delay: 0.15s; }
+.wave-bar:nth-child(3) { animation-delay: 0.3s; }
+.wave-bar:nth-child(4) { animation-delay: 0.45s; }
+.wave-bar:nth-child(5) { animation-delay: 0.6s; }
