@@ -1,8 +1,8 @@
 import { getSupabaseServerClient } from "./supabase/server";
 
 export const DAILY_LIMITS = {
-  agent: 50,         // 50 agent runs/day
-  transcribe: 30,    // 30 audio transcriptions/day
+  agent: 50,
+  transcribe: 30,
 };
 
 interface RateLimitResult {
@@ -13,7 +13,6 @@ interface RateLimitResult {
   message?: string;
 }
 
-// In-memory fallback counter for local development if Supabase env vars are not set
 const memoryCounter = {
   date: new Date().toISOString().split("T")[0],
   agent: 0,
@@ -25,9 +24,12 @@ export async function checkAndIncrementLimit(type: "agent" | "transcribe"): Prom
   const today = new Date().toISOString().split("T")[0];
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const isSupabaseConfigured =
+    supabaseUrl &&
+    !supabaseUrl.includes("your-project") &&
+    supabaseUrl.startsWith("http");
 
-  // Fallback to in-memory if Supabase is not yet connected
-  if (!supabaseUrl || supabaseUrl.includes("your-project")) {
+  if (!isSupabaseConfigured) {
     if (memoryCounter.date !== today) {
       memoryCounter.date = today;
       memoryCounter.agent = 0;
@@ -40,7 +42,7 @@ export async function checkAndIncrementLimit(type: "agent" | "transcribe"): Prom
         remaining: 0,
         limit,
         count: memoryCounter[type],
-        message: `Daily ${type} limit reached (${limit}/day). Please try again tomorrow.`,
+        message: `Daily ${type} operation limit reached (${limit}/day). Try again tomorrow.`,
       };
     }
 
@@ -55,8 +57,16 @@ export async function checkAndIncrementLimit(type: "agent" | "transcribe"): Prom
 
   try {
     const supabase = getSupabaseServerClient();
+    if (!supabase) {
+      memoryCounter[type] += 1;
+      return {
+        allowed: true,
+        remaining: limit - memoryCounter[type],
+        limit,
+        count: memoryCounter[type],
+      };
+    }
 
-    // 1. Fetch current today's usage row
     const { data: usageRow, error: fetchErr } = await supabase
       .from("usage_logs")
       .select("*")
@@ -75,11 +85,10 @@ export async function checkAndIncrementLimit(type: "agent" | "transcribe"): Prom
         remaining: 0,
         limit,
         count: currentCount,
-        message: `Daily demo limit reached for ${type} operations (${limit}/${type}s per day). Protects API quotas.`,
+        message: `Daily demo quota limit reached for ${type} operations (${limit}/${type}s per day).`,
       };
     }
 
-    // 2. Increment count via UPSERT
     const newAgentCount = type === "agent" ? currentCount + 1 : (usageRow?.agent_runs ?? 0);
     const newTranscribeCount = type === "transcribe" ? currentCount + 1 : (usageRow?.transcriptions ?? 0);
 
@@ -106,7 +115,6 @@ export async function checkAndIncrementLimit(type: "agent" | "transcribe"): Prom
     };
   } catch (err) {
     console.error("Error checking rate limit:", err);
-    // Fail-open for smooth demo UX if DB has temporary issue
     return {
       allowed: true,
       remaining: limit,
@@ -120,7 +128,12 @@ export async function getTodayUsageStats(): Promise<{ agentRuns: number; transcr
   const today = new Date().toISOString().split("T")[0];
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  if (!supabaseUrl || supabaseUrl.includes("your-project")) {
+  const isSupabaseConfigured =
+    supabaseUrl &&
+    !supabaseUrl.includes("your-project") &&
+    supabaseUrl.startsWith("http");
+
+  if (!isSupabaseConfigured) {
     return {
       agentRuns: memoryCounter.agent,
       transcriptions: memoryCounter.transcribe,
@@ -131,6 +144,15 @@ export async function getTodayUsageStats(): Promise<{ agentRuns: number; transcr
 
   try {
     const supabase = getSupabaseServerClient();
+    if (!supabase) {
+      return {
+        agentRuns: memoryCounter.agent,
+        transcriptions: memoryCounter.transcribe,
+        agentLimit: DAILY_LIMITS.agent,
+        transcribeLimit: DAILY_LIMITS.transcribe,
+      };
+    }
+
     const { data } = await supabase
       .from("usage_logs")
       .select("*")

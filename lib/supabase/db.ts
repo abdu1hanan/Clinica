@@ -14,9 +14,11 @@ export interface SessionRecord {
 
 export async function saveClinicalSession(state: AgentState): Promise<SessionRecord | null> {
   const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return null;
+  }
 
   if (!state.soapNote || !state.followUp || !state.triageResult) {
-    console.warn("Skipping DB save: missing required agent output fields");
     return null;
   }
 
@@ -50,6 +52,9 @@ export async function saveClinicalSession(state: AgentState): Promise<SessionRec
 
 export async function fetchClinicalSessions(limit = 20): Promise<SessionRecord[]> {
   const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return [];
+  }
 
   try {
     const { data, error } = await supabase
@@ -72,6 +77,9 @@ export async function fetchClinicalSessions(limit = 20): Promise<SessionRecord[]
 
 export async function fetchSessionById(id: string): Promise<SessionRecord | null> {
   const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return null;
+  }
 
   try {
     const { data, error } = await supabase
