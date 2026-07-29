@@ -26,6 +26,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Audio file exceeds maximum allowed upload size of 25MB." },
+        { status: 400 }
+      );
+    }
+
     // Fallback message if Groq API key is missing
     if (!groqApiKey) {
       return NextResponse.json({

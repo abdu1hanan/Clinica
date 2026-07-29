@@ -23,6 +23,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (rawInput.trim().length > 10000) {
+      return NextResponse.json(
+        { error: "Input text exceeds maximum allowed length of 10,000 characters." },
+        { status: 400 }
+      );
+    }
+
     const finalState = await clinicaAgentGraph.invoke({
       rawInput: rawInput.trim(),
     });
