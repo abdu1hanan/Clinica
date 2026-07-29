@@ -6,92 +6,100 @@ export async function extractNode(state: AgentState): Promise<Partial<AgentState
   const inputText = state.cleanedTranscript || state.rawInput;
 
   if (!inputText || !inputText.trim()) {
-    return {
-      currentNode: "extract",
-      error: "Input text is empty",
-    };
+    return { currentNode: "extract", error: "Input text is empty" };
   }
 
   if (!apiKey) {
     const fallbackData: PatientData = {
-      patient_name: "Patient (Demo)",
-      age: 40,
+      patient_name: "Demo Patient",
+      age: 45,
       gender: "unspecified",
-      vitals: { blood_pressure: "120/80 mmHg", heart_rate: "75 bpm" },
+      vitals: { vitals_summary: "Not reported at this encounter" },
       chief_complaint: inputText.slice(0, 100),
-      symptoms: [inputText.slice(0, 50)],
+      hpi: inputText.slice(0, 200),
+      symptoms: [inputText.slice(0, 60)],
+      review_of_systems: [],
+      physical_exam: "Physical examination not documented",
+      plan_directives: [],
       duration: "recent onset",
       medical_history: [],
+      allergies: [],
+      current_medications: [],
     };
-    return {
-      patientData: fallbackData,
-      currentNode: "extract",
-    };
+    return { patientData: fallbackData, currentNode: "extract" };
   }
 
   const model = new ChatGoogleGenerativeAI({
     apiKey,
     model: "gemini-2.0-flash",
-    temperature: 0.1,
+    temperature: 0.0,
   });
 
-  const prompt = `You are a clinical entity extraction service parsing clinical dictation notes into structured JSON format.
+  const prompt = `You are a board-certified clinical documentation specialist. Extract ALL clinical entities from this physician dictation with maximum precision.
 
-Input Clinical Text:
+CRITICAL RULES:
+- NEVER output empty strings or empty JSON objects for vitals — if vitals are described as "stable" or not stated numerically, output: "Reported stable by clinician" in vitals_summary
+- Extract pertinent NEGATIVES in review_of_systems (e.g., "Denies radiation of pain", "No lower extremity numbness", "No bowel/bladder dysfunction")
+- Extract EXACT medication directives with dosages (e.g., "Ibuprofen 400mg PO PRN", "aspirin 81mg daily") into plan_directives
+- Extract physical exam findings (palpation, auscultation, special tests like SLR, Murphy's sign) into physical_exam as a single structured string
+- Extract HPI as a flowing narrative: onset, character, location, duration, radiation, aggravating/relieving factors
+
+Clinical Dictation:
 """
 ${inputText}
 """
 
-Extract entities matching this strict JSON structure:
+Return ONLY this JSON structure (no markdown, no backticks):
 {
   "patient_name": "Full name or 'Anonymous Patient'",
   "age": number or null,
   "gender": "male | female | other | unspecified",
   "vitals": {
-    "blood_pressure": "e.g. 130/85 mmHg or null",
-    "heart_rate": "e.g. 82 bpm or null",
-    "temperature": "e.g. 98.6 °F or null",
+    "blood_pressure": "e.g. 145/90 mmHg or null",
+    "heart_rate": "e.g. 98 bpm or null",
+    "temperature": "e.g. 101.2 °F or null",
     "respiratory_rate": "e.g. 18/min or null",
-    "oxygen_saturation": "e.g. 98% or null"
+    "oxygen_saturation": "e.g. 98% or null",
+    "vitals_summary": "Reported stable by clinician" or null if specific values provided
   },
-  "chief_complaint": "Primary complaint summary",
+  "chief_complaint": "Concise primary complaint (one sentence)",
+  "hpi": "Full History of Present Illness narrative — onset, character, location, duration, radiation, aggravating/relieving factors, associated symptoms",
   "symptoms": ["symptom 1", "symptom 2"],
+  "review_of_systems": ["Denies radiation of pain", "No lower extremity numbness", "Positive for nausea", etc.],
+  "physical_exam": "Structured exam findings — e.g. Lumbar: mild paraspinal tenderness bilaterally. SLR: negative bilaterally. Gait: normal.",
+  "plan_directives": ["Ibuprofen 400mg PO q6h PRN pain", "Light walking encouraged", "Avoid heavy lifting"],
   "duration": "e.g. 3 days or null",
-  "medical_history": ["condition 1", "condition 2"]
-}
-
-Output ONLY valid JSON.`;
+  "medical_history": ["condition 1"],
+  "allergies": ["NKDA" or allergy entries],
+  "current_medications": ["medication 1"]
+}`;
 
   try {
     const response = await model.invoke(prompt);
     const content = typeof response.content === "string" ? response.content : JSON.stringify(response.content);
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Invalid JSON structure in extraction response");
-    }
+    if (!jsonMatch) throw new Error("No JSON in extraction response");
 
     const parsedJson = JSON.parse(jsonMatch[0]);
     const validatedData = PatientDataSchema.parse(parsedJson);
 
-    return {
-      patientData: validatedData,
-      currentNode: "extract",
-      error: null,
-    };
+    return { patientData: validatedData, currentNode: "extract", error: null };
   } catch (err) {
     console.error("Error in extractNode:", err);
-    const fallbackData: PatientData = {
+    const fallback: PatientData = {
       patient_name: "Patient",
       chief_complaint: inputText.slice(0, 120),
+      hpi: inputText.slice(0, 300),
       symptoms: [inputText.slice(0, 60)],
-      vitals: {},
+      vitals: { vitals_summary: "Not documented at this encounter" },
+      review_of_systems: [],
+      physical_exam: "Not documented at this encounter",
+      plan_directives: [],
       medical_history: [],
+      allergies: [],
+      current_medications: [],
     };
-    return {
-      patientData: fallbackData,
-      currentNode: "extract",
-      error: null,
-    };
+    return { patientData: fallback, currentNode: "extract", error: null };
   }
 }

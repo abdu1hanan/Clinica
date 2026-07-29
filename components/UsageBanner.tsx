@@ -1,21 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShieldCheck, Activity } from "lucide-react";
+import { BarChart2 } from "lucide-react";
+
+interface UsageStats {
+  agentRuns: number;
+  transcriptions: number;
+  agentLimit: number;
+  transcribeLimit: number;
+}
 
 export function UsageBanner() {
-  const [stats, setStats] = useState<{
-    agentRuns: number;
-    transcriptions: number;
-    agentLimit: number;
-    transcribeLimit: number;
-  } | null>(null);
+  const [stats, setStats] = useState<UsageStats | null>(null);
 
   useEffect(() => {
     fetch("/api/usage")
-      .then((res) => res.json())
-      .then((data) => setStats(data))
-      .catch(() => null);
+      .then((r) => r.json())
+      .then(setStats)
+      .catch(() => {});
   }, []);
 
   if (!stats) return null;
@@ -24,21 +26,40 @@ export function UsageBanner() {
   const transcribeRemaining = Math.max(0, stats.transcribeLimit - stats.transcriptions);
 
   return (
-    <div className="bg-slate-900 border-b border-slate-800 text-xs py-2 px-4 flex items-center justify-between text-slate-400">
-      <div className="flex items-center gap-2">
-        <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-        <span>
-          <strong className="text-slate-200">System Quotas:</strong> Active daily limits enforced for public endpoints
+    <div className="no-print" style={{
+      background: "linear-gradient(180deg, var(--bg-card) 0%, var(--bg-paper) 100%)",
+      borderBottom: "1px solid var(--border-light)",
+      padding: "5px 24px",
+      display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 16,
+      boxShadow: "0 1px 0 rgba(255,255,255,0.9), 0 1px 4px rgba(0,0,0,0.03)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <BarChart2 style={{ width: 11, height: 11, color: "var(--teal-mid)" }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          System Quotas:
         </span>
       </div>
-      <div className="flex items-center gap-4">
-        <span className="flex items-center gap-1.5">
-          <Activity className="w-3 h-3 text-teal-400" />
-          <span>Pipeline Executions: <strong className="text-teal-300">{agentRemaining}</strong>/{stats.agentLimit} remaining today</span>
-        </span>
-        <span className="text-slate-700">|</span>
-        <span>Speech Transcriptions: <strong className="text-teal-300">{transcribeRemaining}</strong>/{stats.transcribeLimit} remaining today</span>
-      </div>
+      {[
+        { label: "Pipeline Runs", remaining: agentRemaining, limit: stats.agentLimit },
+        { label: "Transcriptions", remaining: transcribeRemaining, limit: stats.transcribeLimit },
+      ].map(item => (
+        <div key={item.label} style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "3px 8px", borderRadius: 5,
+          background: "var(--bg-subtle)", border: "1px solid var(--border-light)",
+          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
+        }}>
+          <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{item.label}:</span>
+          <span style={{
+            fontSize: 10, fontWeight: 700,
+            color: item.remaining === 0 ? "var(--red-mid)" : item.remaining < 5 ? "var(--amber-mid)" : "var(--teal-dark)",
+            fontFamily: "'IBM Plex Mono', monospace",
+          }}>
+            {item.remaining}/{item.limit}
+          </span>
+          <span style={{ fontSize: 10, color: "var(--text-placeholder)" }}>remaining</span>
+        </div>
+      ))}
     </div>
   );
 }

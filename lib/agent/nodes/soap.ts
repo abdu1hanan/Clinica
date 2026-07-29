@@ -5,80 +5,93 @@ export async function soapNode(state: AgentState): Promise<Partial<AgentState>> 
   const apiKey = process.env.GOOGLE_API_KEY;
   const patientData = state.patientData;
   const triageResult = state.triageResult;
+  const cleanedTranscript = state.cleanedTranscript || state.rawInput;
 
   if (!patientData) {
-    return {
-      currentNode: "soap",
-      error: "Missing patientData for SOAP generation",
-    };
+    return { currentNode: "soap", error: "Missing patientData for SOAP generation" };
   }
 
-  // Fallback SOAP if API key missing
   if (!apiKey) {
-    const fallbackSOAP: SOAPNote = {
-      subjective: `Patient (${patientData.patient_name}) reports: ${patientData.chief_complaint}. Symptoms: ${patientData.symptoms.join(", ")}.`,
-      objective: `Vitals: BP ${patientData.vitals.blood_pressure ?? '120/80'}, HR ${patientData.vitals.heart_rate ?? '72'}. Physical exam pending.`,
-      assessment: `Clinical Assessment (${triageResult?.triage_level ?? 'LOW'} Risk): Presentation consistent with ${patientData.chief_complaint}. Triage recommendation: ${triageResult?.recommendation ?? 'Routine follow-up'}.`,
-      plan: `1. Clinical monitoring.\n2. Symptom relief as needed.\n3. Patient educated on warning signs.`,
+    const fallback: SOAPNote = {
+      subjective: `${patientData.patient_name}${patientData.age ? `, ${patientData.age}-year-old` : ""}${patientData.gender && patientData.gender !== "unspecified" ? ` ${patientData.gender}` : ""} presents with ${patientData.chief_complaint}. ${patientData.hpi || ""}`,
+      objective: `Vitals: ${patientData.vitals?.vitals_summary ?? `BP ${patientData.vitals?.blood_pressure ?? "Not recorded"}, HR ${patientData.vitals?.heart_rate ?? "Not recorded"}, Temp ${patientData.vitals?.temperature ?? "Not recorded"}`}. Physical Exam: ${patientData.physical_exam ?? "Not documented at this encounter."} Review of Systems: ${patientData.review_of_systems?.join("; ") || "Not documented."}`,
+      assessment: `Clinical presentation consistent with ${patientData.chief_complaint}. Triage Risk: ${triageResult?.triage_level ?? "LOW"}. ${triageResult?.recommendation ?? ""}`,
+      plan: patientData.plan_directives?.length
+        ? patientData.plan_directives.map((d, i) => `${i + 1}. ${d}`).join("\n")
+        : "1. Symptomatic relief as appropriate.\n2. Follow up with primary care physician.\n3. Return if symptoms worsen.",
     };
-    return {
-      soapNote: fallbackSOAP,
-      currentNode: "soap",
-    };
+    return { soapNote: fallback, currentNode: "soap" };
   }
 
   const model = new ChatGoogleGenerativeAI({
     apiKey,
     model: "gemini-2.0-flash",
-    temperature: 0.2,
+    temperature: 0.15,
   });
 
-  const prompt = `You are an expert clinical documentation specialist formatting patient intake data into standard SOAP (Subjective, Objective, Assessment, Plan) format.
+  const prompt = `You are a board-certified Internal Medicine physician writing a formal SOAP note for an Electronic Medical Record (EMR) system.
 
-Patient Data:
-${JSON.stringify(patientData, null, 2)}
+CRITICAL INSTRUCTIONS:
+1. SYNTHESIZE and REWRITE — never copy-paste raw speech verbatim. Convert clinical shorthand into formal medical prose.
+2. SUBJECTIVE: Write a complete HPI paragraph — include mechanism/onset, character, location, duration, radiation, aggravating/relieving factors, and pertinent negatives from the Review of Systems.
+3. OBJECTIVE: Use structured bullet-point format for (a) Vitals, (b) Physical Examination findings, (c) Special Tests with results. If vitals were stated as "stable", write "Vitals: Reported stable by clinician." NEVER output empty brackets.
+4. ASSESSMENT: INFER the primary diagnostic impression based on the full clinical picture (S + O). Name the diagnosis formally (e.g., "Acute mechanical lumbar strain secondary to repetitive heavy lifting"). Add a differential if clinically appropriate.
+5. PLAN: Format as numbered, actionable medical orders:
+   - Medications with dose, route, frequency, duration
+   - Activity recommendations and restrictions  
+   - Follow-up timing
+   - Return precautions / red-flag symptoms to watch for
+6. If any section has insufficient data, write "Not reported at this encounter." — NEVER leave blank.
 
-Clinical Triage Evaluation:
-${JSON.stringify(triageResult, null, 2)}
+---
+Original Clinical Transcript:
+"""
+${cleanedTranscript}
+"""
 
-Generate standard medical SOAP documentation:
-- **Subjective (S)**: Patient demographic info, chief complaint, detailed history of present illness, patient-reported symptoms, and relevant medical history.
-- **Objective (O)**: Vital signs, physical observations, labs, and objective clinical markers.
-- **Assessment (A)**: Diagnostic impressions, differential diagnosis, and clinical triage risk context (${triageResult?.triage_level ?? 'LOW'} RISK).
-- **Plan (P)**: Actionable diagnostic tests, therapeutic interventions, medications, referral recommendations, and return precautions.
+Extracted Clinical Data:
+Patient: ${patientData.patient_name}, ${patientData.age ?? "Age not stated"} years, ${patientData.gender ?? "Gender not stated"}
+Chief Complaint: ${patientData.chief_complaint}
+HPI: ${patientData.hpi ?? "See transcript"}
+Vitals: ${patientData.vitals?.vitals_summary ?? `BP: ${patientData.vitals?.blood_pressure ?? "not documented"}, HR: ${patientData.vitals?.heart_rate ?? "not documented"}, Temp: ${patientData.vitals?.temperature ?? "not documented"}, SpO2: ${patientData.vitals?.oxygen_saturation ?? "not documented"}`}
+Symptoms: ${patientData.symptoms?.join(", ") || "See transcript"}
+Review of Systems: ${patientData.review_of_systems?.join("; ") || "Not specifically documented"}
+Physical Exam: ${patientData.physical_exam ?? "Not documented"}
+Plan Directives: ${patientData.plan_directives?.join("; ") || "Not specifically stated"}
+Medical History: ${patientData.medical_history?.join(", ") || "Not reported"}
+Triage Level: ${triageResult?.triage_level ?? "LOW"}
+Triage Flags: ${triageResult?.flags?.map(f => f.symptom).join(", ") || "None identified"}
+---
 
-Return JSON with exact keys: "subjective", "objective", "assessment", "plan".
-Do NOT use markdown code block formatting. Return raw valid JSON.`;
+Return ONLY this raw JSON (no markdown, no code blocks):
+{
+  "subjective": "Complete professional HPI paragraph",
+  "objective": "• Vitals: ...\n• Physical Examination: ...\n• Special Tests: ...",
+  "assessment": "Primary diagnostic impression with brief rationale. Triage risk context.",
+  "plan": "1. Medications: ...\n2. Activity: ...\n3. Follow-Up: ...\n4. Return Precautions: ..."
+}`;
 
   try {
     const response = await model.invoke(prompt);
     const content = typeof response.content === "string" ? response.content : JSON.stringify(response.content);
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("No JSON object found in SOAP response");
-    }
+    if (!jsonMatch) throw new Error("No JSON in SOAP response");
 
     const parsedJson = JSON.parse(jsonMatch[0]);
     const validatedSOAP = SOAPNoteSchema.parse(parsedJson);
 
-    return {
-      soapNote: validatedSOAP,
-      currentNode: "soap",
-      error: null,
-    };
-  } catch (err: any) {
+    return { soapNote: validatedSOAP, currentNode: "soap", error: null };
+  } catch (err) {
     console.error("Error in soapNode:", err);
-    const fallbackSOAP: SOAPNote = {
-      subjective: `Patient ${patientData.patient_name} presents with ${patientData.chief_complaint}.`,
-      objective: `Vitals documented: ${JSON.stringify(patientData.vitals)}.`,
-      assessment: `Clinical presentation evaluated. Triage rating: ${triageResult?.triage_level ?? 'LOW'}.`,
-      plan: `1. Follow up with primary physician.\n2. Monitor for red flag symptoms.`,
+    const fallback: SOAPNote = {
+      subjective: `${patientData.patient_name} presents with ${patientData.chief_complaint}. ${patientData.hpi || ""}`,
+      objective: `Vitals: ${patientData.vitals?.vitals_summary ?? "Not documented."}. Physical Exam: ${patientData.physical_exam ?? "Not documented at this encounter."}`,
+      assessment: `Clinical impression: ${patientData.chief_complaint}. Triage classification: ${triageResult?.triage_level ?? "LOW"} risk.`,
+      plan: patientData.plan_directives?.length
+        ? patientData.plan_directives.map((d, i) => `${i + 1}. ${d}`).join("\n")
+        : "1. Follow up with primary physician.\n2. Monitor for red flag symptom progression.",
     };
-    return {
-      soapNote: fallbackSOAP,
-      currentNode: "soap",
-      error: null,
-    };
+    return { soapNote: fallback, currentNode: "soap", error: null };
   }
 }

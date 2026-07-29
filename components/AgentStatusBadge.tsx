@@ -6,9 +6,11 @@ export type PipelineStep =
   | "idle"
   | "cleanTranscript"
   | "extract"
+  | "differential"
   | "triage"
   | "soap"
   | "verifySoap"
+  | "icd10"
   | "followup"
   | "completed"
   | "error";
@@ -18,75 +20,115 @@ interface AgentStatusBadgeProps {
 }
 
 const NODES = [
-  { id: "cleanTranscript", label: "Transcript Formatting", desc: "Speech normalization" },
-  { id: "extract", label: "Entity Extraction", desc: "Structured parsing" },
-  { id: "triage", label: "Clinical Triage", desc: "Risk rule scanner" },
-  { id: "soap", label: "SOAP Generation", desc: "Clinical documentation" },
-  { id: "verifySoap", label: "Quality Verification", desc: "SOAP validation check" },
-  { id: "followup", label: "Patient Care Summary", desc: "Care instruction draft" },
+  { id: "cleanTranscript", label: "Transcript Formatting", desc: "Normalize speech output" },
+  { id: "extract", label: "Clinical Entity Extraction", desc: "HPI, ROS, physical exam" },
+  { id: "differential", label: "Differential Diagnosis", desc: "Ranked clinical DDx" },
+  { id: "triage", label: "Safety Triage Scanner", desc: "Risk rule evaluation" },
+  { id: "soap", label: "SOAP Synthesis", desc: "Formal EMR documentation" },
+  { id: "verifySoap", label: "Quality Verification", desc: "Completeness & scoring" },
+  { id: "icd10", label: "ICD-10 Coding", desc: "Diagnostic code mapping" },
+  { id: "followup", label: "Patient Care Summary", desc: "Plain-language instructions" },
 ];
 
 export function AgentStatusBadge({ currentStep }: AgentStatusBadgeProps) {
   if (currentStep === "idle") {
     return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3 text-xs text-slate-400">
-        <div className="flex items-center gap-1.5 font-semibold text-slate-300 mb-1">
-          <ShieldCheck className="w-4 h-4 text-teal-400" />
-          <span>Clinical Processing Engine</span>
+      <div className="card" style={{ padding: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <ShieldCheck style={{ width: 15, height: 15, color: "var(--teal-mid)" }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>
+            8-Stage Clinical Processing Engine
+          </span>
         </div>
-        <p className="text-slate-500">6-stage state graph execution pipeline ready.</p>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>
+          Pipeline ready. Enter clinical dictation to begin processing.
+        </p>
       </div>
     );
   }
 
-  const getStepStatus = (nodeId: string) => {
-    const order = ["cleanTranscript", "extract", "triage", "soap", "verifySoap", "followup", "completed"];
-    const currentIndex = order.indexOf(currentStep);
-    const nodeIndex = order.indexOf(nodeId);
+  const order = ["cleanTranscript", "extract", "differential", "triage", "soap", "verifySoap", "icd10", "followup", "completed"];
 
+  const getStatus = (nodeId: string) => {
     if (currentStep === "error") return "error";
-    if (currentStep === "completed" || nodeIndex < currentIndex) return "completed";
-    if (nodeIndex === currentIndex) return "active";
+    const ci = order.indexOf(currentStep);
+    const ni = order.indexOf(nodeId);
+    if (currentStep === "completed" || ni < ci) return "completed";
+    if (ni === ci) return "active";
     return "pending";
   };
 
+  const completedCount = NODES.filter(n => getStatus(n.id) === "completed").length;
+  const activeNode = NODES.find(n => getStatus(n.id) === "active");
+
   return (
-    <div className="bg-slate-900/80 border border-slate-800 rounded-lg p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-200">Execution Pipeline Status</span>
-        {currentStep !== "completed" && currentStep !== "error" && (
-          <span className="flex items-center gap-1.5 text-[11px] text-teal-400 font-medium">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing pipeline...
+    <div className="card" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Pipeline Execution Status
+        </span>
+        {currentStep === "completed" ? (
+          <span style={{ fontSize: 11, color: "var(--green-dark)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+            <CheckCircle2 style={{ width: 13, height: 13 }} /> All Stages Complete
           </span>
-        )}
-        {currentStep === "completed" && (
-          <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Pipeline Complete
+        ) : currentStep !== "error" && (
+          <span style={{ fontSize: 11, color: "var(--teal-dark)", fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
+            <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" />
+            {activeNode?.desc ?? "Processing..."}
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      {/* Progress bar */}
+      <div className="quality-bar-track">
+        <div
+          className="quality-bar-fill"
+          style={{
+            width: `${currentStep === "completed" ? 100 : (completedCount / NODES.length) * 100}%`,
+            background: "linear-gradient(90deg, var(--teal-dark), var(--teal-mid))",
+          }}
+        />
+      </div>
+
+      {/* Node grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         {NODES.map((node) => {
-          const status = getStepStatus(node.id);
+          const status = getStatus(node.id);
           return (
             <div
               key={node.id}
-              className={`p-2.5 rounded-md border text-xs transition-all ${
-                status === "completed"
-                  ? "bg-emerald-950/20 border-emerald-800/40 text-emerald-300"
-                  : status === "active"
-                  ? "bg-teal-950/40 border-teal-500/60 text-teal-200 shadow-sm shadow-teal-900/30"
-                  : "bg-slate-950/50 border-slate-800/60 text-slate-500"
-              }`}
+              style={{
+                padding: "7px 10px",
+                borderRadius: 7,
+                border: "1px solid",
+                fontSize: 11,
+                transition: "all 0.2s",
+                ...(status === "completed" ? {
+                  background: "var(--green-bg)",
+                  borderColor: "var(--green-border)",
+                  color: "var(--green-dark)",
+                } : status === "active" ? {
+                  background: "var(--teal-bg)",
+                  borderColor: "var(--teal-border)",
+                  color: "var(--teal-dark)",
+                  boxShadow: "0 0 0 2px rgba(13,148,136,0.12)",
+                } : {
+                  background: "var(--bg-subtle)",
+                  borderColor: "var(--border-light)",
+                  color: "var(--text-muted)",
+                }),
+              }}
             >
-              <div className="flex items-center gap-1.5 font-medium mb-0.5">
-                {status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-                {status === "active" && <Loader2 className="w-3.5 h-3.5 text-teal-400 animate-spin shrink-0" />}
-                {status === "pending" && <Circle className="w-3.5 h-3.5 text-slate-600 shrink-0" />}
-                <span className="truncate">{node.label}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600 }}>
+                {status === "completed" && <CheckCircle2 style={{ width: 11, height: 11, flexShrink: 0 }} />}
+                {status === "active" && <Loader2 style={{ width: 11, height: 11, flexShrink: 0 }} className="animate-spin" />}
+                {(status === "pending" || status === "error") && <Circle style={{ width: 11, height: 11, flexShrink: 0 }} />}
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{node.label}</span>
               </div>
-              <p className="text-[10px] text-slate-400 truncate pl-5">{node.desc}</p>
+              <p style={{ fontSize: 10, opacity: 0.7, marginTop: 1, marginBottom: 0, paddingLeft: 17, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {node.desc}
+              </p>
             </div>
           );
         })}

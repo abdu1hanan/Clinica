@@ -42,7 +42,10 @@ export async function POST(req: NextRequest) {
       cleanedTranscript: finalState.cleanedTranscript || rawInput.trim(),
       patientData: finalState.patientData,
       triageResult: finalState.triageResult,
+      differentialDiagnoses: finalState.differentialDiagnoses,
+      icd10Suggestions: finalState.icd10Suggestions,
       soapNote: finalState.soapNote,
+      qualityScore: finalState.qualityScore,
       followUp: finalState.followUp,
       rateLimitRemaining: rateCheck.remaining,
     });

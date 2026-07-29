@@ -32,6 +32,7 @@ export async function triageNode(state: AgentState): Promise<Partial<AgentState>
       triage_level: "LOW",
       flags: [],
       recommendation: "Routine clinical assessment recommended.",
+      confidence: 75,
     };
     return {
       triageResult: fallbackTriage,

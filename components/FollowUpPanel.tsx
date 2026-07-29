@@ -14,52 +14,61 @@ export function FollowUpPanel({ followUp }: FollowUpPanelProps) {
   if (!followUp) return null;
 
   const handleCopy = () => {
-    const fullMessage = `Subject: ${followUp.subject}\n\n${followUp.body}`;
-    navigator.clipboard.writeText(fullMessage);
+    navigator.clipboard.writeText(`Subject: ${followUp.subject}\n\n${followUp.body}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-      <div className="p-3.5 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Mail className="w-4 h-4 text-teal-400" />
+    <div className="card" style={{ overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{
+        padding: "10px 14px", borderBottom: "1px solid var(--border-light)",
+        background: "var(--bg-subtle)", boxShadow: "0 1px 0 rgba(255,255,255,0.8)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Mail style={{ width: 14, height: 14, color: "var(--teal-mid)" }} />
           <div>
-            <h3 className="text-xs font-bold text-slate-100 uppercase tracking-wider">Patient Care Communication Summary</h3>
-            <p className="text-[10px] text-slate-500">Plain-language patient instruction draft</p>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>
+              Patient Follow-Up Instructions
+            </span>
+            <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>
+              Plain-language post-visit care summary
+            </p>
           </div>
         </div>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700 transition-colors"
+          className="btn-raised"
+          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11 }}
         >
-          {copied ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" /> Copied Draft
-            </>
-          ) : (
-            <>
-              <Copy className="w-3.5 h-3.5 text-slate-400" /> Copy Draft
-            </>
-          )}
+          {copied
+            ? <><Check style={{ width: 12, height: 12, color: "var(--green-mid)" }} /> Copied!</>
+            : <><Copy style={{ width: 12, height: 12 }} /> Copy Draft</>
+          }
         </button>
       </div>
 
-      <div className="p-4">
-        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-3">
-          <div className="flex items-center gap-2 border-b border-slate-800/80 pb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Subject:</span>
-            <span className="text-xs font-medium text-slate-200">{followUp.subject}</span>
-          </div>
-          <div>
-            <span className="text-[11px] font-semibold text-slate-500 block mb-1.5 uppercase tracking-wider">
-              Care Instructions & Return Precautions:
-            </span>
-            <p className="text-xs text-slate-300 whitespace-pre-line leading-relaxed font-sans">
-              {followUp.body}
-            </p>
-          </div>
+      {/* Email preview */}
+      <div style={{ padding: 14 }}>
+        {/* Subject line */}
+        <div className="inset-panel" style={{ padding: "7px 12px", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="section-label">Subject:</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{followUp.subject}</span>
+        </div>
+
+        {/* Body */}
+        <div style={{
+          background: "white", border: "1px solid var(--border-light)", borderRadius: 8,
+          padding: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)",
+        }}>
+          <p style={{
+            fontSize: 12, color: "var(--text-secondary)", margin: 0,
+            lineHeight: 1.8, whiteSpace: "pre-line",
+          }}>
+            {followUp.body}
+          </p>
         </div>
       </div>
     </div>
