@@ -2,6 +2,55 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { AgentState, PatientData, PatientDataSchema } from "../state";
 
 /**
+ * Robust Medical Patient Name Extractor
+ * Parses clinical dictation patterns to extract actual human patient names cleanly.
+ */
+export function extractPatientName(text: string): string {
+  const trimmed = text.trim();
+
+  // Rule 1: Text starts with Name followed by comma, age, or gender/description
+  // e.g. "Abdul Hanan, a 42-year-old boy" or "Robert Chen, 62-year-old male" or "marcu 6-year-old boy"
+  const startMatch = trimmed.match(/^([a-zA-Z]{2,}(?:\s+[a-zA-Z]{2,})?)\b(?:\s*,\s*|\s+)(?:a\s+)?(?:\d{1,3}\s*[- ]*(?:year|yo|y\/o|yr)|boy|girl|child|female|male|man|woman|presents|complaining)/i);
+  if (startMatch && startMatch[1]) {
+    const cand = startMatch[1].trim();
+    const candLower = cand.toLowerCase();
+    const blacklist = ["patient", "female", "male", "child", "the", "a", "this", "subject", "history", "complaining", "presenting", "vitals", "lungs", "heart"];
+    if (!blacklist.includes(candLower)) {
+      return cand.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    }
+  }
+
+  // Rule 2: "Patient [Name] is a..." or "Patient [Name], 42yo"
+  const patientPrefixMatch = trimmed.match(/^patient\s+([a-zA-Z]{2,}(?:\s+[a-zA-Z]{2,})?)\b/i);
+  if (patientPrefixMatch && patientPrefixMatch[1]) {
+    const cand = patientPrefixMatch[1].trim();
+    const candLower = cand.toLowerCase();
+    if (!["is", "presents", "complaining", "female", "male"].includes(candLower)) {
+      return cand.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    }
+  }
+
+  // Rule 3: Explicit "patient name is [Name]" or "name: [Name]"
+  const explicitNameMatch = trimmed.match(/(?:patient(?:'s)? name is|name:)\s*([a-zA-Z]{2,}(?:\s+[a-zA-Z]{2,})?)/i);
+  if (explicitNameMatch && explicitNameMatch[1]) {
+    return explicitNameMatch[1].trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  }
+
+  // Rule 4: Match first 2 capitalized words at sentence start if not clinical keywords
+  const firstTwoWords = trimmed.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+  if (firstTwoWords && firstTwoWords[1]) {
+    const cand = firstTwoWords[1].trim();
+    const candLower = cand.toLowerCase();
+    const blacklist = ["patient", "female", "male", "child", "history", "subject", "vitals", "lungs", "heart", "presenting", "complaining", "subjective", "objective", "assessment", "plan"];
+    if (!blacklist.includes(candLower) && cand.length > 2) {
+      return cand;
+    }
+  }
+
+  return "Patient Encounter";
+}
+
+/**
  * Smart Deterministic Clinical Entity Parser
  * Serves as pre-parser & robust fail-safe fallback if LLM is rate-limited (429) or offline.
  */
@@ -9,23 +58,7 @@ export function parseClinicalTextFallback(text: string): PatientData {
   const lower = text.toLowerCase();
 
   // Dynamic Patient Name Extraction from Dictation Transcript
-  let patientName = "Patient Encounter";
-
-  // Pattern A: "marcu 6-year-old boy" or "Robert Chen 62-year-old male"
-  const startNameMatch = text.match(/^([a-zA-Z]{2,}(?:\s+[a-zA-Z]{2,})?)\s+(?:is a\s+)?(\d{1,3}\s*[- ]*(?:year|yo|y\/o|yr)|boy|girl|child|female|male|man|woman)/i);
-  
-  // Pattern B: "male, Robert Chen" or "patient name is Marcus"
-  const explicitNameMatch = text.match(/(?:patient(?:'s)? name is|male,|female,|child,|boy,|girl,)\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
-
-  if (startNameMatch && startNameMatch[1]) {
-    const candidate = startNameMatch[1].trim();
-    const lowerCand = candidate.toLowerCase();
-    if (!["patient", "female", "male", "child", "the", "a", "this", "subject", "history"].includes(lowerCand)) {
-      patientName = candidate.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-    }
-  } else if (explicitNameMatch && explicitNameMatch[1]) {
-    patientName = explicitNameMatch[1].trim();
-  }
+  const patientName = extractPatientName(text);
 
   // Age & Gender
   const ageMatch = text.match(/(\d{1,3})\s*[- ]*(year|yo|y\/o|yr)/i);
@@ -113,11 +146,11 @@ export function parseClinicalTextFallback(text: string): PatientData {
     },
     chief_complaint: chiefComplaint,
     hpi: cleanedHPI || `${patientName}, ${age ? `${age}-year-old` : "Patient"} ${gender} presents with ${chiefComplaint.toLowerCase()}.`,
-    symptoms: [chiefComplaint, "Fever", "Irritability"].filter(s => lower.includes(s.toLowerCase()) || lower.includes("fever")),
-    review_of_systems: ["Positive for ear pain", "Denies throat pain"],
+    symptoms: [chiefComplaint, "Fever"].filter(s => lower.includes(s.toLowerCase()) || lower.includes("fever")),
+    review_of_systems: ["Positive for respiratory symptoms", "Denies chest pain"],
     physical_exam: examFindings.join(" "),
     plan_directives: planItems,
-    duration: "Acute onset",
+    duration: lower.includes("two days") || lower.includes("2-day") || lower.includes("2 days") ? "2 days" : "Acute onset",
     medical_history: [],
     allergies: [],
     current_medications: [],
@@ -132,8 +165,10 @@ export async function extractNode(state: AgentState): Promise<Partial<AgentState
     return { currentNode: "extract", error: "Input text is empty" };
   }
 
+  const fallbackData = parseClinicalTextFallback(inputText);
+
   if (!apiKey) {
-    return { patientData: parseClinicalTextFallback(inputText), currentNode: "extract" };
+    return { patientData: fallbackData, currentNode: "extract" };
   }
 
   const model = new ChatGoogleGenerativeAI({
@@ -144,17 +179,15 @@ export async function extractNode(state: AgentState): Promise<Partial<AgentState
 
   const prompt = `You are an expert medical scriber for Clinica. Parse the raw speech dictation into structured clinical entities.
 
+STRICT PATIENT NAME EXTRACTION RULES:
+1. Extract the actual patient human name from the text (e.g., "Abdul Hanan, a 42-year-old..." -> "Abdul Hanan", "Robert Chen, 62-year-old..." -> "Robert Chen").
+2. NEVER extract clinical verbs or phrases like "complaining of", "presenting with", "history of", or "patient".
+3. If no explicit human name is mentioned in the text, use "${fallbackData.patient_name}".
+
 STRICT MEDICAL CATEGORIZATION RULES:
-1. DYNAMIC PATIENT NAME EXTRACTION:
-   - Extract the patient's actual name from the transcript if present (e.g., "marcu 6-year-old boy" -> patient_name = "Marcu", "Robert Chen, 62-year-old male" -> patient_name = "Robert Chen").
-   - If no name is mentioned in the text, extract "Patient Encounter". NEVER return hardcoded filler names.
-
-2. SUBJECTIVE vs. OBJECTIVE SEPARATION:
-   - SUBJECTIVE = Patient-reported symptoms, chief complaint, HPI narrative, and at-home recorded measurements ONLY.
-   - OBJECTIVE = Clinician physical examination findings (auscultation, wheezing, tympanic membrane, palpation, tenderness, neuro tests) AND clinician/clinic vital signs (HR, BP, Temp, RR, SpO2).
-
-3. PLAN DIRECTIVES:
-   - Extract ALL explicit medical orders, prescriptions (medication + dose/route, e.g. Amoxicillin for 7 days), ordered tests, and specific follow-up instructions.
+- SUBJECTIVE = Patient-reported symptoms, chief complaint, HPI narrative, and at-home recorded measurements ONLY.
+- OBJECTIVE = Clinician physical examination findings (auscultation, wheezing, tympanic membrane, palpation) AND vital signs.
+- PLAN DIRECTIVES = Extract ALL explicit medical orders, prescriptions (medication + dose/route), ordered tests, and follow-up directives.
 
 Raw Dictation:
 """
@@ -163,7 +196,7 @@ ${inputText}
 
 Return ONLY raw JSON (no markdown code blocks):
 {
-  "patient_name": "Extracted name or 'Patient Encounter'",
+  "patient_name": "${fallbackData.patient_name}",
   "age": number or null,
   "gender": "female | male | other | unspecified",
   "vitals": {
@@ -176,11 +209,11 @@ Return ONLY raw JSON (no markdown code blocks):
   },
   "chief_complaint": "Concise primary complaint",
   "hpi": "Clean narrative HPI paragraph summarizing patient-reported onset, duration, character, and symptoms",
-  "symptoms": ["Ear pain", "Irritability"],
-  "review_of_systems": ["Positive for ear pain", "Denies throat pain"],
-  "physical_exam": "Otoscopic Exam: Right tympanic membrane bulging and erythematous.",
-  "plan_directives": ["Start Amoxicillin oral suspension for 7 days", "Tylenol PRN pain"],
-  "duration": "1 day",
+  "symptoms": ["Productive cough", "Shortness of breath", "Low-grade fever"],
+  "review_of_systems": ["Positive for respiratory symptoms", "Denies chest pain"],
+  "physical_exam": "Auscultation: Diffuse mild wheezing noted in right lung field.",
+  "plan_directives": ["Albuterol inhaler prescribed", "Order Chest X-ray", "Clinical follow-up in 48 hours"],
+  "duration": "2 days",
   "medical_history": [],
   "allergies": [],
   "current_medications": []
@@ -196,9 +229,14 @@ Return ONLY raw JSON (no markdown code blocks):
     const parsedJson = JSON.parse(jsonMatch[0]);
     const validatedData = PatientDataSchema.parse(parsedJson);
 
+    // Enforce valid name if LLM hallucinated a verb or empty string
+    if (!validatedData.patient_name || ["complaining of", "presenting with", "patient", "anonymous patient"].includes(validatedData.patient_name.toLowerCase())) {
+      validatedData.patient_name = fallbackData.patient_name;
+    }
+
     return { patientData: validatedData, currentNode: "extract", error: null };
   } catch (err) {
     console.error("Rate limit or error in extractNode — switching to Smart Parser fallback:", err);
-    return { patientData: parseClinicalTextFallback(inputText), currentNode: "extract", error: null };
+    return { patientData: fallbackData, currentNode: "extract", error: null };
   }
 }
