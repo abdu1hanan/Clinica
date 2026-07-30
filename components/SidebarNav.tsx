@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Stethoscope,
   LayoutDashboard,
   FolderHeart,
   GitBranch,
@@ -52,22 +51,22 @@ export function SidebarNav({ activeTab = "overview", onNavigate }: SidebarNavPro
       gap: 20,
       zIndex: 20,
     }}>
-      {/* Brand Logo */}
+      {/* Brand Logo with Generated Emblem */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 6 }}>
-        <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          background: "linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)",
-          boxShadow: "0 2px 8px rgba(20,184,166,0.3)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-          <Stethoscope style={{ width: 16, height: 16, color: "#ffffff" }} />
-        </div>
+        <img
+          src="/logo.png"
+          alt="Clinica Logo"
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 8,
+            objectFit: "cover",
+            border: "1px solid rgba(45,212,191,0.4)",
+            boxShadow: "0 2px 8px rgba(45,212,191,0.2)",
+          }}
+        />
         <div>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", margin: 0, letterSpacing: "-0.02em" }}>Clinica</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 800, color: "#ffffff", margin: 0, letterSpacing: "-0.02em" }}>Clinica</h2>
           <span style={{ fontSize: 9, fontWeight: 700, color: "#71717a", letterSpacing: "0.1em", textTransform: "uppercase" }}>NOTE ENGINE</span>
         </div>
       </div>

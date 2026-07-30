@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Clinica — Clinical Documentation & Triage Platform",
   description: "Enterprise-grade clinical SOAP documentation, differential diagnosis, ICD-10 coding, and patient care instruction engine.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -13,6 +18,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+      </head>
       <body style={{ fontFamily: "'Inter', system-ui, sans-serif" }} suppressHydrationWarning>
         {children}
       </body>
