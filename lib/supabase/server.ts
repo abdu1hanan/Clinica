@@ -9,8 +9,8 @@ export function getSupabaseServerClient() {
     return null;
   }
 
-  // Clean trailing slash to prevent PGRST125 invalid path error
-  const supabaseUrl = rawUrl.trim().replace(/\/+$/, "");
+  // Strip trailing slashes and any trailing /rest/v1 to prevent PGRST125 invalid path error
+  const supabaseUrl = rawUrl.trim().replace(/\/rest\/v1\/?$/i, "").replace(/\/+$/, "");
 
   try {
     return createClient(supabaseUrl, supabaseKey);
