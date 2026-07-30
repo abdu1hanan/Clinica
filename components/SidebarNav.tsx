@@ -8,11 +8,8 @@ import {
   Tag,
   Mail,
   ShieldCheck,
-  FileCode2,
   Users,
   BookOpen,
-  HelpCircle,
-  Settings,
   Lock,
 } from "lucide-react";
 
@@ -37,21 +34,15 @@ export function SidebarNav({ activeTab = "overview", onNavigate }: SidebarNavPro
   ];
 
   const workspaceItems = [
-    { id: "templates", label: "AI templates", icon: <FileCode2 style={{ width: 15, height: 15 }} /> },
     { id: "safety", label: "Safety protocols", icon: <ShieldCheck style={{ width: 15, height: 15 }} /> },
-  ];
-
-  const bottomItems = [
-    { id: "help", label: "Help & support", icon: <HelpCircle style={{ width: 15, height: 15 }} /> },
-    { id: "settings", label: "Settings", icon: <Settings style={{ width: 15, height: 15 }} /> },
   ];
 
   return (
     <aside style={{
       width: 240,
       flexShrink: 0,
-      background: "#121215",
-      borderRight: "1px solid #27272a",
+      background: "#111113",
+      borderRight: "1px solid #242427",
       display: "flex",
       flexDirection: "column",
       height: "100vh",
@@ -76,7 +67,7 @@ export function SidebarNav({ activeTab = "overview", onNavigate }: SidebarNavPro
           <Stethoscope style={{ width: 16, height: 16, color: "#ffffff" }} />
         </div>
         <div>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: "#f4f4f5", margin: 0, letterSpacing: "-0.02em" }}>Clinica</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", margin: 0, letterSpacing: "-0.02em" }}>Clinica</h2>
           <span style={{ fontSize: 9, fontWeight: 700, color: "#71717a", letterSpacing: "0.1em", textTransform: "uppercase" }}>NOTE ENGINE</span>
         </div>
       </div>
@@ -98,7 +89,7 @@ export function SidebarNav({ activeTab = "overview", onNavigate }: SidebarNavPro
                 fontSize: 12,
                 fontWeight: isActive ? 600 : 500,
                 color: isActive ? "#ffffff" : "#a1a1aa",
-                background: isActive ? "#27272a" : "transparent",
+                background: isActive ? "#222226" : "transparent",
                 border: "none",
                 cursor: "pointer",
                 textAlign: "left",
@@ -133,7 +124,7 @@ export function SidebarNav({ activeTab = "overview", onNavigate }: SidebarNavPro
                 fontSize: 12,
                 fontWeight: isActive ? 600 : 500,
                 color: isActive ? "#ffffff" : "#a1a1aa",
-                background: isActive ? "#27272a" : "transparent",
+                background: isActive ? "#222226" : "transparent",
                 border: "none",
                 cursor: "pointer",
                 textAlign: "left",
@@ -147,38 +138,11 @@ export function SidebarNav({ activeTab = "overview", onNavigate }: SidebarNavPro
         })}
       </nav>
 
-      {/* Bottom Section & HIPAA Badge */}
+      {/* Bottom HIPAA Security Card */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {bottomItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleSelect(item.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "7px 12px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 500,
-                color: "#71717a",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <span style={{ color: "#52525b", display: "flex" }}>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        {/* HIPAA Badge Card */}
         <div style={{
-          background: "#18181b",
-          border: "1px solid #27272a",
+          background: "#161618",
+          border: "1px solid #242427",
           borderRadius: 8,
           padding: 10,
           display: "flex",
@@ -187,10 +151,10 @@ export function SidebarNav({ activeTab = "overview", onNavigate }: SidebarNavPro
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <Lock style={{ width: 12, height: 12, color: "#2dd4bf" }} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#f4f4f5" }}>HIPAA-ready workspace</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#ffffff" }}>HIPAA-ready workspace</span>
           </div>
           <p style={{ fontSize: 9, color: "#71717a", margin: 0, lineHeight: 1.4 }}>
-            Protected health data is encrypted at rest and in transit.
+            Protected health data is encrypted at rest and in transit. Zero-retention AI pipeline.
           </p>
         </div>
       </div>

@@ -13,20 +13,40 @@ export function FollowUpPanel({ followUp }: FollowUpPanelProps) {
 
   if (!followUp) {
     return (
-      <div className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Mail style={{ width: 15, height: 15, color: "#2dd4bf" }} />
-            <div>
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5", margin: 0 }}>Patient follow-up</h4>
-              <p style={{ fontSize: 11, color: "#71717a", margin: 0 }}>Plain-language care instructions</p>
+      <div className="card" style={{ padding: 18, background: "#161618", border: "1px solid #242427", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Mail style={{ width: 15, height: 15, color: "#2dd4bf" }} />
+              <div>
+                <h4 style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", margin: 0 }}>Patient follow-up</h4>
+                <p style={{ fontSize: 11, color: "#71717a", margin: 0 }}>Plain-language care instructions</p>
+              </div>
             </div>
+            <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#222226", color: "#a1a1aa" }}>
+              Reading level: 6th grade
+            </span>
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#27272a", color: "#a1a1aa" }}>
-            Reading level: 6th grade
-          </span>
+
+          <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "10px 0 12px" }} />
         </div>
-        <p style={{ fontSize: 11, color: "#52525b", margin: 0 }}>No patient follow-up data available. Execute an intake encounter to generate instructions.</p>
+
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p style={{ fontSize: 11, color: "#52525b", margin: 0, textAlign: "center" }}>
+            No patient follow-up data available. Execute an intake encounter to generate instructions.
+          </p>
+        </div>
+
+        <button
+          disabled
+          className="btn-raised"
+          style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            padding: "9px 14px", fontSize: 12, fontWeight: 600, opacity: 0.4, cursor: "not-allowed",
+          }}
+        >
+          <Copy style={{ width: 13, height: 13 }} /> Copy Follow-up Draft
+        </button>
       </div>
     );
   }
@@ -37,40 +57,43 @@ export function FollowUpPanel({ followUp }: FollowUpPanelProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const bodyLines = followUp.body.split("\n").filter(l => l.trim().length > 0);
+  const bodyLines = followUp.body.split("\n").filter((l: string) => l.trim().length > 0);
 
   return (
-    <div className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a", display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Mail style={{ width: 15, height: 15, color: "#2dd4bf" }} />
-          <div>
-            <h4 style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5", margin: 0 }}>Patient follow-up</h4>
-            <p style={{ fontSize: 11, color: "#71717a", margin: 0 }}>Plain-language post-encounter summary</p>
+    <div className="card" style={{ padding: 18, background: "#161618", border: "1px solid #242427", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 14 }}>
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Mail style={{ width: 15, height: 15, color: "#2dd4bf" }} />
+            <div>
+              <h4 style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", margin: 0 }}>Patient follow-up</h4>
+              <p style={{ fontSize: 11, color: "#71717a", margin: 0 }}>Plain-language post-encounter summary</p>
+            </div>
           </div>
+          <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "#222226", color: "#a1a1aa" }}>
+            Reading level: 6th grade
+          </span>
         </div>
-        <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "#27272a", color: "#a1a1aa" }}>
-          Reading level: 6th grade
-        </span>
+
+        <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "10px 0 12px" }} />
       </div>
 
-      {/* Instruction List Card */}
       <div style={{
-        background: "#121215",
-        border: "1px solid #27272a",
+        background: "#111113",
+        border: "1px solid #242427",
         borderRadius: 10,
         padding: 14,
         display: "flex",
         flexDirection: "column",
         gap: 10,
+        flex: 1,
       }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#f4f4f5" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#ffffff" }}>
           {followUp.subject}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {bodyLines.map((line, i) => (
+          {bodyLines.map((line: string, i: number) => (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
               <CheckCircle2 style={{ width: 14, height: 14, color: "#2dd4bf", flexShrink: 0, marginTop: 2 }} />
               <p style={{ fontSize: 11, color: "#a1a1aa", margin: 0, lineHeight: 1.5 }}>
@@ -81,7 +104,6 @@ export function FollowUpPanel({ followUp }: FollowUpPanelProps) {
         </div>
       </div>
 
-      {/* Full Width Copy Button ONLY */}
       <button
         onClick={handleCopy}
         className="btn-raised"

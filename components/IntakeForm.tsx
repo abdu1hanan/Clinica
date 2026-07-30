@@ -5,7 +5,7 @@ import { Mic, MicOff, Play, Loader2, RefreshCw, Pause, Radio } from "lucide-reac
 
 export const CLINICAL_PRESETS = [
   {
-    label: "Respiratory / Bronchitis (Script 2)",
+    label: "Respiratory / Bronchitis",
     text: "42-year-old female presenting with a 2-day history of productive cough and shortness of breath. Subjective low-grade fever recorded at home (100.4°F). Lungs have diffuse mild wheezing on the right side, heart rate is elevated at 98. Plan: Albuterol inhaler, order Chest X-ray.",
   },
   {
@@ -24,11 +24,51 @@ export const CLINICAL_PRESETS = [
     label: "Pediatric Croup",
     text: "8-year-old male, Marcus Williams. 2-day history of barking cough, worse at night. Mother reports audible stridor with agitation, but child is currently calm and in no acute distress. Low-grade fever of 100.8°F. Blood pressure 98/62 mmHg, heart rate 104 bpm, oxygen saturation 97% on room air. Chest auscultation reveals mild inspiratory stridor, lungs clear bilaterally.",
   },
-  {
-    label: "Neurological TIA",
-    text: "68-year-old female, Margaret Sullivan. Presenting with acute onset right arm weakness and slurred speech lasting approximately 15 minutes, now fully resolved. History of type 2 diabetes, hypertension, and atrial fibrillation. Current medications: metformin 1000mg twice daily, amlodipine 10mg, warfarin 5mg. Blood pressure 158/94 mmHg, heart rate 88 bpm irregular. NIHSS 0. Neurological exam currently normal.",
-  },
 ];
+
+interface PresetsCardProps {
+  onSelectPreset: (text: string, index: number) => void;
+  activePreset: number | null;
+}
+
+export function PresetsCard({ onSelectPreset, activePreset }: PresetsCardProps) {
+  return (
+    <div className="card" style={{ padding: 18, background: "#161618", border: "1px solid #242427", display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff" }}>Clinical Scenario Presets</span>
+          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "#222226", color: "#a1a1aa" }}>5 Presets</span>
+        </div>
+
+        {/* Slightly visible white hr line */}
+        <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "10px 0 12px" }} />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, justifyContent: "center" }}>
+        {CLINICAL_PRESETS.map((preset, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => onSelectPreset(preset.text, idx)}
+            className="btn-raised"
+            style={{
+              textAlign: "left", padding: "8px 10px", fontSize: 11, fontWeight: 500,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              borderRadius: 6,
+              ...(activePreset === idx ? {
+                background: "rgba(45,212,191,0.15)",
+                borderColor: "rgba(45,212,191,0.4)",
+                color: "#2dd4bf",
+              } : {}),
+            }}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface IntakeFormProps {
   onRunAgent: (input: string) => Promise<void>;
@@ -122,177 +162,139 @@ export function IntakeForm({ onRunAgent, isLoading }: IntakeFormProps) {
 
   const formatTimer = (sec: number) => {
     const m = Math.floor(sec / 60), s = sec % 60;
-    return `${m.toString().padStart(2, "0")} : ${s.toString().padStart(2, "0")}`;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
   const charCount = inputText.length;
   const charPct = Math.min(100, (charCount / 10000) * 100);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* ── ROW 1: Main Recorder (Left) + Sample Presets Box (Right) ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24, alignItems: "stretch" }}>
-        
-        {/* LEFT: Main Recorder Card */}
-        <div className="card" style={{ padding: 20, background: "#18181b", border: "1px solid #27272a", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16 }}>
-          {/* Header Status Bar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: "50%",
-                background: isRecording ? "#ef4444" : "#2dd4bf",
-                boxShadow: isRecording ? "0 0 8px #ef4444" : "0 0 8px #2dd4bf",
-              }} className="animate-pulse" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5" }}>
-                {isRecording ? (isPaused ? "Recording paused" : "Recording active") : "Ready to record"}
-              </span>
-            </div>
-
-            {/* Live transcription badge — NO EMOJIS, simple green dot */}
-            <div style={{
-              background: "#27272a",
-              border: "1px solid #3f3f46",
-              borderRadius: 999,
-              padding: "3px 10px",
-              fontSize: 10,
-              color: "#a1a1aa",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2dd4bf" }} />
-              Live transcription on
-            </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%", height: "100%" }}>
+      {/* Main Recorder Card */}
+      <div className="card" style={{ padding: 20, background: "#161618", border: "1px solid #242427", display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
+        {/* Status Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: "50%",
+              background: isRecording ? "#ef4444" : "#2dd4bf",
+              boxShadow: isRecording ? "0 0 8px #ef4444" : "0 0 8px #2dd4bf",
+            }} className="animate-pulse" />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff" }}>
+              {isRecording ? (isPaused ? "Recording paused" : "Recording active") : "Ready to record"}
+            </span>
           </div>
 
-          <div style={{ fontSize: 11, color: "#71717a", margin: 0 }}>
-            Encounter: {activePreset !== null ? CLINICAL_PRESETS[activePreset].label : "General consultation intake"}
-          </div>
-
-          {/* Timer & Waveform */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0" }}>
-            <div style={{
-              fontSize: 40,
-              fontWeight: 800,
-              fontFamily: "'IBM Plex Mono', monospace",
-              color: "#ffffff",
-              letterSpacing: "-0.04em",
-              lineHeight: 1,
-            }}>
-              {isRecording ? formatTimer(recordSeconds) : "00 : 00"}
-            </div>
-
-            {/* Waveform Visualizer */}
-            <div style={{ display: "flex", alignItems: "center", gap: 3, height: 28 }}>
-              {[14, 22, 10, 26, 18, 28, 12, 24, 16, 20, 10, 25, 15, 22].map((h, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: 3,
-                    height: isRecording && !isPaused ? undefined : `${h}px`,
-                    background: isRecording ? (isPaused ? "#71717a" : "#2dd4bf") : "#3f3f46",
-                    borderRadius: 2,
-                    animationDelay: `${i * 0.08}s`,
-                  }}
-                  className={isRecording && !isPaused ? "wave-bar" : ""}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Recorder Controls */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              {isRecording ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handlePauseRecording}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6,
-                      padding: "7px 16px", borderRadius: 999, fontSize: 12, fontWeight: 600,
-                      background: "#27272a", border: "1px solid #3f3f46", color: "#f4f4f5", cursor: "pointer",
-                    }}
-                  >
-                    <Pause style={{ width: 12, height: 12 }} /> {isPaused ? "Resume" : "Pause"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleStopRecording}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6,
-                      padding: "7px 16px", borderRadius: 999, fontSize: 12, fontWeight: 600,
-                      background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#f87171", cursor: "pointer",
-                    }}
-                  >
-                    Stop & generate
-                  </button>
-                </>
-              ) : (
-                /* New Recording Button — Curved Pill, White with Black Text/Icon */
-                <button
-                  type="button"
-                  onClick={handleStartRecording}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "8px 20px", borderRadius: 999, fontSize: 12, fontWeight: 700,
-                    background: "#ffffff", color: "#000000", border: "none", cursor: "pointer",
-                    boxShadow: "0 2px 8px rgba(255,255,255,0.2)",
-                  }}
-                >
-                  <Mic style={{ width: 14, height: 14, color: "#000000" }} /> New recording
-                </button>
-              )}
-            </div>
-
-            <div style={{ fontSize: 10, color: "#71717a", display: "flex", alignItems: "center", gap: 5 }}>
-              <Radio style={{ width: 12, height: 12, color: "#2dd4bf" }} />
-              {isRecording ? "Input level good" : "Mic standby"}
-            </div>
+          <div style={{
+            background: "#111113",
+            border: "1px solid #242427",
+            borderRadius: 999,
+            padding: "4px 12px",
+            fontSize: 10,
+            color: "#a1a1aa",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2dd4bf" }} />
+            Live transcription on
           </div>
         </div>
 
-        {/* RIGHT: Sample Clinical Scenarios Presets Box (Dedicated Box, NO EMOJIS) */}
-        <div className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a", display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5" }}>Clinical Scenario Presets</span>
-            <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "#27272a", color: "#a1a1aa" }}>6 Presets</span>
+        {/* Slightly visible white hr line */}
+        <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "6px 0 8px" }} />
+
+        <div style={{ fontSize: 11, color: "#71717a", margin: 0 }}>
+          Encounter: {activePreset !== null ? CLINICAL_PRESETS[activePreset].label : "Marcus Bell · 47M · General consult"}
+        </div>
+
+        {/* Timer & Waveform */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 0" }}>
+          <div style={{
+            fontSize: 44,
+            fontWeight: 800,
+            fontFamily: "'IBM Plex Mono', monospace",
+            color: "#ffffff",
+            letterSpacing: "-0.04em",
+            lineHeight: 1,
+          }}>
+            {isRecording ? formatTimer(recordSeconds) : "00:00"}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, justifyContent: "center" }}>
-            {CLINICAL_PRESETS.map((preset, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => { setInputText(preset.text); setActivePreset(idx); }}
-                className="btn-raised"
+          <div style={{ display: "flex", alignItems: "center", gap: 3, height: 32 }}>
+            {[14, 22, 10, 26, 18, 28, 12, 24, 16, 20, 10, 25, 15, 22].map((h, i) => (
+              <div
+                key={i}
                 style={{
-                  textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 500,
-                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  borderRadius: 6,
-                  ...(activePreset === idx ? {
-                    background: "rgba(45,212,191,0.15)",
-                    borderColor: "rgba(45,212,191,0.4)",
-                    color: "#2dd4bf",
-                  } : {}),
+                  width: 3,
+                  height: isRecording && !isPaused ? undefined : `${h}px`,
+                  background: isRecording ? (isPaused ? "#71717a" : "#2dd4bf") : "#3a3a40",
+                  borderRadius: 2,
+                  animationDelay: `${i * 0.08}s`,
                 }}
-              >
-                {preset.label}
-              </button>
+                className={isRecording && !isPaused ? "wave-bar" : ""}
+              />
             ))}
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 4 }}>
+          <div style={{ display: "flex", gap: 10 }}>
+            {isRecording ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePauseRecording}
+                  className="btn-dark-pill"
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", fontSize: 12 }}
+                >
+                  <Pause style={{ width: 12, height: 12 }} /> {isPaused ? "Resume" : "Pause"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStopRecording}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "7px 18px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+                    background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#f87171", cursor: "pointer",
+                  }}
+                >
+                  Stop & generate
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartRecording}
+                className="btn-white-pill"
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 22px", fontSize: 12 }}
+              >
+                <Mic style={{ width: 14, height: 14 }} /> Start
+              </button>
+            )}
+          </div>
+
+          <div style={{ fontSize: 11, color: "#71717a", display: "flex", alignItems: "center", gap: 6 }}>
+            <Radio style={{ width: 13, height: 13, color: "#2dd4bf" }} />
+            {isRecording ? "Input level good" : "Mic standby"}
           </div>
         </div>
       </div>
 
-      {/* ── ROW 2 LEFT: Transcription Textarea Box ── */}
-      <form onSubmit={handleSubmit} className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a", display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5" }}>Clinical Dictation Transcript</span>
-          {isTranscribing && (
-            <span style={{ fontSize: 10, color: "#2dd4bf", display: "flex", alignItems: "center", gap: 5 }}>
-              <Loader2 style={{ width: 11, height: 11 }} className="animate-spin" /> Processing speech...
-            </span>
-          )}
+      {/* Clinical Dictation Transcript Box */}
+      <form onSubmit={handleSubmit} className="card" style={{ padding: 20, background: "#161618", border: "1px solid #242427", display: "flex", flexDirection: "column", gap: 12, width: "100%", flex: 1 }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff" }}>Clinical Dictation Transcript</span>
+            {isTranscribing && (
+              <span style={{ fontSize: 11, color: "#2dd4bf", display: "flex", alignItems: "center", gap: 5 }}>
+                <Loader2 style={{ width: 12, height: 12 }} className="animate-spin" /> Processing speech...
+              </span>
+            )}
+          </div>
+          {/* Slightly visible white hr line */}
+          <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "10px 0 0" }} />
         </div>
 
         <textarea
@@ -303,24 +305,22 @@ export function IntakeForm({ onRunAgent, isLoading }: IntakeFormProps) {
           className="input-field"
         />
 
-        {/* Footer controls: Clear button on LEFT with char bar, Execute Pipeline button on RIGHT (White rounded pill with black text) */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 4 }}>
-          {/* LEFT: Clear button + Character bar */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <button
               type="button"
               onClick={() => { setInputText(""); setActivePreset(null); }}
               style={{
                 display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
-                color: "#a1a1aa", background: "#27272a", border: "1px solid #3f3f46",
-                borderRadius: 6, padding: "4px 10px", cursor: "pointer",
+                color: "#a1a1aa", background: "#222226", border: "1px solid #333338",
+                borderRadius: 6, padding: "5px 12px", cursor: "pointer",
               }}
             >
               <RefreshCw style={{ width: 11, height: 11 }} /> Clear
             </button>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div className="quality-bar-track" style={{ width: 80 }}>
+              <div className="quality-bar-track" style={{ width: 90 }}>
                 <div
                   className="quality-bar-fill"
                   style={{
@@ -335,15 +335,13 @@ export function IntakeForm({ onRunAgent, isLoading }: IntakeFormProps) {
             </div>
           </div>
 
-          {/* RIGHT: Execute Pipeline Button — White Pill, Black Text & Black Icon */}
           <button
             type="submit"
             disabled={isLoading || !inputText.trim()}
+            className="btn-white-pill"
             style={{
               display: "flex", alignItems: "center", gap: 8,
-              padding: "9px 22px", borderRadius: 999, fontSize: 12, fontWeight: 800,
-              background: "#ffffff", color: "#000000", border: "none", cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(255,255,255,0.2)",
+              padding: "9px 24px", fontSize: 12,
               opacity: isLoading || !inputText.trim() ? 0.5 : 1,
             }}
           >

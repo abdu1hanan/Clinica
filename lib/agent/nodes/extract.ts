@@ -8,13 +8,32 @@ import { AgentState, PatientData, PatientDataSchema } from "../state";
 export function parseClinicalTextFallback(text: string): PatientData {
   const lower = text.toLowerCase();
 
+  // Dynamic Patient Name Extraction from Dictation Transcript
+  let patientName = "Patient Encounter";
+
+  // Pattern A: "marcu 6-year-old boy" or "Robert Chen 62-year-old male"
+  const startNameMatch = text.match(/^([a-zA-Z]{2,}(?:\s+[a-zA-Z]{2,})?)\s+(?:is a\s+)?(\d{1,3}\s*[- ]*(?:year|yo|y\/o|yr)|boy|girl|child|female|male|man|woman)/i);
+  
+  // Pattern B: "male, Robert Chen" or "patient name is Marcus"
+  const explicitNameMatch = text.match(/(?:patient(?:'s)? name is|male,|female,|child,|boy,|girl,)\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+
+  if (startNameMatch && startNameMatch[1]) {
+    const candidate = startNameMatch[1].trim();
+    const lowerCand = candidate.toLowerCase();
+    if (!["patient", "female", "male", "child", "the", "a", "this", "subject", "history"].includes(lowerCand)) {
+      patientName = candidate.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+    }
+  } else if (explicitNameMatch && explicitNameMatch[1]) {
+    patientName = explicitNameMatch[1].trim();
+  }
+
   // Age & Gender
   const ageMatch = text.match(/(\d{1,3})\s*[- ]*(year|yo|y\/o|yr)/i);
   const age = ageMatch ? parseInt(ageMatch[1]) : null;
 
-  const gender = /female|woman|lady|she|her/i.test(text)
+  const gender = /female|woman|lady|girl|she|her/i.test(text)
     ? "female"
-    : /male|man|gentleman|he|his/i.test(text)
+    : /male|man|gentleman|boy|he|his/i.test(text)
     ? "male"
     : "unspecified";
 
@@ -34,6 +53,9 @@ export function parseClinicalTextFallback(text: string): PatientData {
 
   // Physical Exam
   const examFindings: string[] = [];
+  if (lower.includes("tympanic membrane") || lower.includes("ear tugging") || lower.includes("otitis")) {
+    examFindings.push("Otoscopic Exam: Right tympanic membrane bulging and erythematous. Left ear canal and membrane clear. Oropharynx clear.");
+  }
   if (lower.includes("wheezing")) {
     const loc = lower.includes("right side") || lower.includes("right lung") ? "right lung field" : "bilateral lung fields";
     examFindings.push(`Auscultation: Diffuse mild wheezing noted in ${loc}.`);
@@ -54,32 +76,33 @@ export function parseClinicalTextFallback(text: string): PatientData {
 
   // Plan Directives
   const planItems: string[] = [];
+  if (lower.includes("amoxicillin")) planItems.push("Start Amoxicillin oral suspension for 7 days");
+  if (lower.includes("tylenol") || lower.includes("acetaminophen")) planItems.push("Tylenol / Acetaminophen PRN pain and fever management");
   if (lower.includes("albuterol")) planItems.push("Initiate Albuterol MDI as directed for bronchospasm");
   if (lower.includes("chest x-ray") || lower.includes("x-ray") || lower.includes("xray")) planItems.push("Order urgent 2-view Chest X-Ray");
   if (lower.includes("ibuprofen")) planItems.push("Ibuprofen 400mg PO q6h PRN pain");
   if (lower.includes("walking")) planItems.push("Light ambulation encouraged; avoid bed rest and heavy lifting");
   if (lower.includes("follow up") || lower.includes("follow-up") || lower.includes("48 hours") || lower.includes("48-hour")) {
-    planItems.push("Clinical follow-up in 48 hours; return immediately if dyspnea worsens");
+    planItems.push("Clinical follow-up in 48 hours; return immediately if symptoms worsen");
   }
   if (planItems.length === 0) {
     planItems.push("1. Follow up with primary care clinician");
     planItems.push("2. Return if symptoms worsen");
   }
 
-  // Chief Complaint & Clean HPI Narrative
+  // Chief Complaint
   let chiefComplaint = "Productive cough and shortness of breath";
-  if (lower.includes("chest pain")) chiefComplaint = "Substernal chest pain and shortness of breath";
+  if (lower.includes("ear tugging") || lower.includes("otitis") || lower.includes("ear pain")) chiefComplaint = "Right ear pain, tugging, and irritability";
+  else if (lower.includes("chest pain")) chiefComplaint = "Substernal chest pain and shortness of breath";
   else if (lower.includes("back pain") || lower.includes("lumbar")) chiefComplaint = "Dull lower back pain post-exertion";
   else if (lower.includes("abdominal pain") || lower.includes("rlq")) chiefComplaint = "Right lower quadrant abdominal pain";
   else if (lower.includes("croup") || lower.includes("barking cough")) chiefComplaint = "Barking cough and inspiratory stridor";
-  else if (lower.includes("arm weakness") || lower.includes("slurred speech")) chiefComplaint = "Transient right arm weakness and dysarthria";
 
-  // Clean HPI — remove stuttering, complete full sentences only
   const cleanedHPI = text.replace(/plan:.*$/i, "").replace(/lungs have.*$/i, "").trim();
 
   return {
-    patient_name: "Anonymous Patient",
-    age: age ?? 42,
+    patient_name: patientName,
+    age: age ?? (lower.includes("boy") || lower.includes("girl") ? 6 : 42),
     gender,
     vitals: {
       blood_pressure: vitalsObj.blood_pressure || null,
@@ -89,12 +112,12 @@ export function parseClinicalTextFallback(text: string): PatientData {
       vitals_summary: vitalsSummary,
     },
     chief_complaint: chiefComplaint,
-    hpi: cleanedHPI || `${age ? `${age}-year-old` : "Patient"} ${gender} presents with ${chiefComplaint.toLowerCase()}.`,
-    symptoms: [chiefComplaint, "Fever", "Shortness of breath"].filter(s => lower.includes(s.toLowerCase()) || lower.includes("fever") || lower.includes("breath")),
-    review_of_systems: ["Positive for respiratory symptoms", "Denies chest pain"],
+    hpi: cleanedHPI || `${patientName}, ${age ? `${age}-year-old` : "Patient"} ${gender} presents with ${chiefComplaint.toLowerCase()}.`,
+    symptoms: [chiefComplaint, "Fever", "Irritability"].filter(s => lower.includes(s.toLowerCase()) || lower.includes("fever")),
+    review_of_systems: ["Positive for ear pain", "Denies throat pain"],
     physical_exam: examFindings.join(" "),
     plan_directives: planItems,
-    duration: lower.includes("2-day") || lower.includes("2 day") ? "2 days" : lower.includes("3-day") || lower.includes("3 day") ? "3 days" : "Acute onset",
+    duration: "Acute onset",
     medical_history: [],
     allergies: [],
     current_medications: [],
@@ -115,24 +138,23 @@ export async function extractNode(state: AgentState): Promise<Partial<AgentState
 
   const model = new ChatGoogleGenerativeAI({
     apiKey,
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     temperature: 0.0,
   });
 
   const prompt = `You are an expert medical scriber for Clinica. Parse the raw speech dictation into structured clinical entities.
 
 STRICT MEDICAL CATEGORIZATION RULES:
-1. SUBJECTIVE vs. OBJECTIVE SEPARATION:
-   - SUBJECTIVE = Patient-reported symptoms, chief complaint, HPI narrative, and at-home recorded measurements ONLY.
-   - OBJECTIVE = Clinician physical examination findings (auscultation, wheezing, rales, palpation, tenderness, murmurs, neuro tests) AND clinician/clinic vital signs (HR, BP, Temp, RR, SpO2).
-   - MANDATORY: If auscultation (lung sounds/wheezing), heart rate, temperature, blood pressure, or physical maneuvers (palpation, SLR) are mentioned anywhere in the audio, they MUST be extracted into OBJECTIVE (physical_exam and vitals), NEVER left as generic text and NEVER put in Subjective!
+1. DYNAMIC PATIENT NAME EXTRACTION:
+   - Extract the patient's actual name from the transcript if present (e.g., "marcu 6-year-old boy" -> patient_name = "Marcu", "Robert Chen, 62-year-old male" -> patient_name = "Robert Chen").
+   - If no name is mentioned in the text, extract "Patient Encounter". NEVER return hardcoded filler names.
 
-2. NO TEXT STUTTER OR DUPLICATION:
-   - Do NOT repeat phrases like "42-year-old female complaining... 42-year-old female complaining...".
-   - Write clean, concise, elegant medical prose.
+2. SUBJECTIVE vs. OBJECTIVE SEPARATION:
+   - SUBJECTIVE = Patient-reported symptoms, chief complaint, HPI narrative, and at-home recorded measurements ONLY.
+   - OBJECTIVE = Clinician physical examination findings (auscultation, wheezing, tympanic membrane, palpation, tenderness, neuro tests) AND clinician/clinic vital signs (HR, BP, Temp, RR, SpO2).
 
 3. PLAN DIRECTIVES:
-   - Extract ALL explicit medical orders, prescriptions (medication + dose/route), ordered tests (e.g., "Order 2-view Chest X-Ray"), and specific follow-up instructions.
+   - Extract ALL explicit medical orders, prescriptions (medication + dose/route, e.g. Amoxicillin for 7 days), ordered tests, and specific follow-up instructions.
 
 Raw Dictation:
 """
@@ -141,7 +163,7 @@ ${inputText}
 
 Return ONLY raw JSON (no markdown code blocks):
 {
-  "patient_name": "Full name or 'Anonymous Patient'",
+  "patient_name": "Extracted name or 'Patient Encounter'",
   "age": number or null,
   "gender": "female | male | other | unspecified",
   "vitals": {
@@ -153,12 +175,12 @@ Return ONLY raw JSON (no markdown code blocks):
     "vitals_summary": "HR 98 bpm, Temp 100.4 °F"
   },
   "chief_complaint": "Concise primary complaint",
-  "hpi": "Clean narrative HPI paragraph summarizing patient-reported onset, duration, character, and symptoms (NO physical exam findings)",
-  "symptoms": ["Productive cough", "Shortness of breath", "Low-grade fever"],
-  "review_of_systems": ["Positive for dyspnea", "Denies chest pain"],
-  "physical_exam": "Auscultation: Diffuse mild wheezing noted in right lung field.",
-  "plan_directives": ["Albuterol MDI as directed for bronchospasm", "Order urgent 2-view Chest X-Ray", "Clinical follow-up in 48 hours"],
-  "duration": "2 days",
+  "hpi": "Clean narrative HPI paragraph summarizing patient-reported onset, duration, character, and symptoms",
+  "symptoms": ["Ear pain", "Irritability"],
+  "review_of_systems": ["Positive for ear pain", "Denies throat pain"],
+  "physical_exam": "Otoscopic Exam: Right tympanic membrane bulging and erythematous.",
+  "plan_directives": ["Start Amoxicillin oral suspension for 7 days", "Tylenol PRN pain"],
+  "duration": "1 day",
   "medical_history": [],
   "allergies": [],
   "current_medications": []

@@ -1,20 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
-/* ── Sleek Dark Theme Design Tokens ── */
+/* ── Reference Photo Dark Theme Tokens ── */
 :root {
-  --bg-base: #09090b;
-  --bg-sidebar: #121215;
-  --bg-card: #18181b;
-  --bg-card-hover: #202024;
-  --bg-inset: #121215;
-  --bg-subtle: #27272a;
+  --bg-base: #0a0a0c;
+  --bg-sidebar: #111113;
+  --bg-card: #161618;
+  --bg-card-hover: #1e1e22;
+  --bg-inset: #111113;
+  --bg-subtle: #222226;
 
-  --border-light: #27272a;
-  --border-medium: #3f3f46;
-  --border-dark: #52525b;
+  --border-light: #242427;
+  --border-medium: #2a2a2e;
+  --border-dark: #3a3a40;
 
-  --text-primary: #f4f4f5;
+  --text-primary: #ffffff;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
   --text-placeholder: #52525b;
@@ -22,44 +22,31 @@
   --teal-dark: #0f766e;
   --teal-mid: #14b8a6;
   --teal-light: #2dd4bf;
-  --teal-bg: rgba(20, 184, 166, 0.1);
-  --teal-border: rgba(45, 212, 191, 0.3);
+  --teal-bg: rgba(45, 212, 191, 0.12);
+  --teal-border: rgba(45, 212, 191, 0.35);
 
   --red-dark: #991b1b;
   --red-mid: #ef4444;
   --red-light: #f87171;
-  --red-bg: rgba(239, 68, 68, 0.1);
-  --red-border: rgba(248, 113, 113, 0.3);
+  --red-bg: rgba(239, 68, 68, 0.15);
+  --red-border: rgba(248, 113, 113, 0.35);
 
   --amber-dark: #92400e;
   --amber-mid: #f59e0b;
   --amber-light: #fbbf24;
-  --amber-bg: rgba(245, 158, 11, 0.1);
-  --amber-border: rgba(251, 191, 36, 0.3);
+  --amber-bg: rgba(245, 158, 11, 0.15);
+  --amber-border: rgba(251, 191, 36, 0.35);
 
   --green-dark: #166534;
   --green-mid: #22c55e;
   --green-light: #4ade80;
-  --green-bg: rgba(34, 197, 94, 0.1);
-  --green-border: rgba(74, 222, 128, 0.3);
-
-  --blue-dark: #1e40af;
-  --blue-mid: #3b82f6;
-  --blue-light: #60a5fa;
-  --blue-bg: rgba(59, 130, 246, 0.1);
-  --blue-border: rgba(96, 165, 250, 0.3);
-
-  --purple-dark: #6b21a8;
-  --purple-mid: #a855f7;
-  --purple-light: #c084fc;
-  --purple-bg: rgba(168, 85, 247, 0.1);
-  --purple-border: rgba(192, 132, 252, 0.3);
+  --green-bg: rgba(34, 197, 94, 0.15);
+  --green-border: rgba(74, 222, 128, 0.35);
 
   /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.3);
-  --shadow-raised: 0 4px 20px rgba(0,0,0,0.5);
-  --shadow-inset: inset 0 2px 4px rgba(0,0,0,0.5);
-  --shadow-btn: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.6);
+  --shadow-raised: 0 4px 16px rgba(0,0,0,0.7);
+  --shadow-inset: inset 0 2px 4px rgba(0,0,0,0.6);
 }
 
 /* ── Base ── */
@@ -75,82 +62,85 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Dark Card ── */
+/* ── Reference Photo Cards ── */
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  background: #161618;
+  border: 1px solid #242427;
   border-radius: 12px;
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   position: relative;
 }
 
 .inset-panel {
-  background: var(--bg-inset);
-  border: 1px solid var(--border-light);
+  background: #111113;
+  border: 1px solid #242427;
   border-radius: 8px;
-  box-shadow: var(--shadow-inset);
 }
 
 .section-label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letterSpacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: #71717a;
 }
 
-/* ── Buttons ── */
+/* ── Reference Photo Pill Buttons ── */
+.btn-white-pill {
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(255,255,255,0.15);
+}
+
+.btn-white-pill:hover:not(:disabled) {
+  background: #f4f4f5;
+  box-shadow: 0 4px 12px rgba(255,255,255,0.25);
+}
+
+.btn-dark-pill {
+  background: #222226;
+  color: #f4f4f5;
+  border: 1px solid #333338;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-dark-pill:hover:not(:disabled) {
+  background: #2d2d32;
+  border-color: #44444a;
+}
+
 .btn-raised {
-  background: #27272a;
-  border: 1px solid #3f3f46;
+  background: #222226;
+  border: 1px solid #333338;
   border-radius: 8px;
   color: #f4f4f5;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.15s ease;
 }
 
 .btn-raised:hover {
-  background: #3f3f46;
-  border-color: #52525b;
+  background: #2d2d32;
+  border-color: #44444a;
 }
 
-.btn-raised:active {
-  transform: translateY(1px);
-}
-
-.btn-primary {
-  background: linear-gradient(180deg, #14b8a6 0%, #0f766e 100%);
-  border: 1px solid #0d9488;
-  border-radius: 8px;
-  color: white;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 8px rgba(20,184,166,0.25);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #2dd4bf 0%, #14b8a6 100%);
-  box-shadow: 0 4px 12px rgba(20,184,166,0.35);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ── Input Field ── */
 .input-field {
-  background: #121215;
-  border: 1px solid #27272a;
+  background: #111113;
+  border: 1px solid #242427;
   border-radius: 8px;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-  color: #f4f4f5;
+  color: #ffffff;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
   line-height: 1.6;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s;
   width: 100%;
   padding: 12px 14px;
   resize: none;
@@ -163,11 +153,9 @@ body {
 }
 
 .input-field:focus {
-  border-color: #14b8a6;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 0 0 3px rgba(20,184,166,0.15);
+  border-color: #2dd4bf;
 }
 
-/* ── Waveform Animation ── */
 @keyframes wave-bounce {
   0%, 100% { height: 6px; }
   50% { height: 24px; }
@@ -180,9 +168,8 @@ body {
   animation: wave-bounce 1.2s ease-in-out infinite;
 }
 
-/* ── Quality Bar ── */
 .quality-bar-track {
-  background: #27272a;
+  background: #242427;
   border-radius: 999px;
   height: 6px;
   overflow: hidden;
@@ -194,13 +181,11 @@ body {
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Scrollbars ── */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #09090b; }
-::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+::-webkit-scrollbar-track { background: #0a0a0c; }
+::-webkit-scrollbar-thumb { background: #242427; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
 
-/* ── Print styles ── */
 @media print {
   body { background: white; color: black; }
   .no-print { display: none !important; }

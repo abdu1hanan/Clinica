@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Inbox,
-} from "lucide-react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { HeaderBar } from "@/components/HeaderBar";
-import { IntakeForm } from "@/components/IntakeForm";
+import { IntakeForm, PresetsCard } from "@/components/IntakeForm";
 import { AgentStatusBadge, PipelineStep } from "@/components/AgentStatusBadge";
 import { TriageBadge } from "@/components/TriageBadge";
 import { SOAPPreview, QualityMeter } from "@/components/SOAPPreview";
@@ -14,6 +11,10 @@ import { DifferentialPanel } from "@/components/DifferentialPanel";
 import { ICD10Panel } from "@/components/ICD10Panel";
 import { FollowUpPanel } from "@/components/FollowUpPanel";
 import { HistorySidebar } from "@/components/HistorySidebar";
+import { PatientModal } from "@/components/PatientModal";
+import { PatientsDirectory } from "@/components/PatientsDirectory";
+import { NoteLibrary } from "@/components/NoteLibrary";
+import { SafetyProtocols } from "@/components/SafetyProtocols";
 import {
   PatientData,
   TriageResult,
@@ -24,26 +25,6 @@ import {
   QualityScore,
 } from "@/lib/agent/state";
 import { SessionRecord } from "@/lib/supabase/db";
-
-function EmptyStateTemplate({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="card" style={{
-      padding: 60, textAlign: "center", background: "#18181b", border: "1px solid #27272a",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12,
-    }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 12, background: "#121215", border: "1px solid #27272a",
-        display: "flex", alignItems: "center", justifyContent: "center", color: "#71717a",
-      }}>
-        <Inbox style={{ width: 24, height: 24 }} />
-      </div>
-      <div>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f4f4f5", margin: 0 }}>{title}</h3>
-        <p style={{ fontSize: 12, color: "#71717a", margin: "4px 0 0", maxWidth: 360 }}>{description}</p>
-      </div>
-    </div>
-  );
-}
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("overview");
@@ -58,6 +39,9 @@ export default function Home() {
   const [followUp, setFollowUp] = useState<PatientFollowUp | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<number | null>(null);
+  const [localSessions, setLocalSessions] = useState<SessionRecord[]>([]);
+  const [selectedPatientModalSession, setSelectedPatientModalSession] = useState<SessionRecord | null>(null);
 
   const handleRunAgent = async (rawInput: string) => {
     setErrorMsg(null);
@@ -101,8 +85,30 @@ export default function Home() {
       setSoapNote(data.soapNote);
       setQualityScore(data.qualityScore);
       setFollowUp(data.followUp);
-      setActiveSessionId(data.sessionId);
+      const newSessionId = data.sessionId || `session-${Date.now()}`;
+      setActiveSessionId(newSessionId);
       setPipelineStep("completed");
+
+      // Save into real-time local sessions array for Encounters, Patients & Note Library
+      if (data.soapNote) {
+        const extractedName = data.patientData?.patient_name && data.patientData.patient_name !== "Anonymous Patient"
+          ? data.patientData.patient_name
+          : "Patient Encounter";
+
+        const newRecord: SessionRecord = {
+          id: newSessionId,
+          created_at: new Date().toISOString(),
+          patient_name: extractedName,
+          raw_input: rawInput,
+          triage_level: data.triageResult?.triage_level || "LOW",
+          triage_flags: data.triageResult?.flags || [],
+          soap_note: data.soapNote,
+          follow_up: data.followUp || { subject: "Care Instructions", body: "Follow up as advised." },
+          differentials: data.differentialDiagnoses || [],
+          icd10: data.icd10Suggestions || [],
+        };
+        setLocalSessions((prev) => [newRecord, ...prev]);
+      }
     } catch (err) {
       console.error("Pipeline error:", err);
       setPipelineStep("error");
@@ -111,39 +117,20 @@ export default function Home() {
   };
 
   const handleSelectHistorySession = (session: SessionRecord) => {
-    setActiveSessionId(session.id);
-    setCleanedTranscript(session.raw_input);
-    setTriageResult({
-      triage_level: session.triage_level,
-      flags: session.triage_flags || [],
-      recommendation: `Session loaded from record history (${new Date(session.created_at).toLocaleString()}).`,
-      confidence: 80,
-    });
-    setSoapNote(session.soap_note);
-    setFollowUp(session.follow_up);
-    setDifferentialDiagnoses(null);
-    setIcd10Suggestions(null);
-    setQualityScore(null);
-    setPatientData({
-      patient_name: session.patient_name,
-      chief_complaint: session.raw_input,
-      symptoms: [],
-      vitals: {},
-      review_of_systems: [],
-      physical_exam: null,
-      plan_directives: [],
-      medical_history: [],
-      allergies: [],
-      current_medications: [],
-    });
-    setPipelineStep("completed");
-    setErrorMsg(null);
+    setSelectedPatientModalSession(session);
   };
 
   const isRunning = pipelineStep !== "idle" && pipelineStep !== "completed" && pipelineStep !== "error";
 
+  // Derive unique patient names dynamically from real executed sessions
+  const dynamicPatientNames = Array.from(
+    new Set([
+      ...localSessions.map((s) => s.patient_name || "Patient Encounter"),
+    ])
+  );
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#09090b", color: "#f4f4f5" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#0a0a0c", color: "#f4f4f5" }}>
       {/* Left Sidebar */}
       <SidebarNav activeTab={activeTab} onNavigate={(tab) => setActiveTab(tab)} />
 
@@ -155,7 +142,7 @@ export default function Home() {
         {/* Workspace Container */}
         <div style={{ padding: "28px 32px", display: "flex", flexDirection: "column", gap: 24, maxWidth: 1440, width: "100%", margin: "0 auto" }}>
           
-          {/* TAB 1: OVERVIEW (EXACT DASHBOARD LAYOUT SPECIFIED) */}
+          {/* TAB 1: OVERVIEW */}
           {activeTab === "overview" && (
             <>
               {/* Welcome Header Banner */}
@@ -164,11 +151,11 @@ export default function Home() {
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#2dd4bf" }}>
                     THURSDAY, JULY 30
                   </span>
-                  <h1 style={{ fontSize: 26, fontWeight: 800, color: "#f4f4f5", margin: "4px 0 2px", letterSpacing: "-0.02em" }}>
+                  <h1 style={{ fontSize: 26, fontWeight: 800, color: "#ffffff", margin: "4px 0 2px", letterSpacing: "-0.02em" }}>
                     Good morning, Abdul Hanan.
                   </h1>
                   <p style={{ fontSize: 13, color: "#a1a1aa", margin: 0 }}>
-                    Your clinical workspace is ready.
+                    Your clinical workspace is ready. Three encounters need review.
                   </p>
                 </div>
               </div>
@@ -176,7 +163,7 @@ export default function Home() {
               {/* Error Banner */}
               {errorMsg && (
                 <div style={{
-                  background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 10,
+                  background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.35)", borderRadius: 10,
                   padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start",
                 }}>
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444", flexShrink: 0, marginTop: 4 }} />
@@ -187,38 +174,49 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ROW 1 (Recorder Left + Presets Right) & ROW 2 (Transcription Left + Triage Safety Flags Right) */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {/* Combined Recorder, Presets, Transcription & Triage Row */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24, alignItems: "stretch" }}>
-                  
-                  {/* Left Column: IntakeForm (Recorder Top, Transcription Bottom) */}
+              {/* WORKSPACE GRID ROW 1 */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24, alignItems: "stretch" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", height: "100%" }}>
                   <IntakeForm onRunAgent={handleRunAgent} isLoading={isRunning} />
+                </div>
 
-                  {/* Right Column: Triage Safety Flags Box (Stays Aligned even when empty) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", height: "100%" }}>
+                  <PresetsCard
+                    activePreset={activePreset}
+                    onSelectPreset={(text, idx) => {
+                      setActivePreset(idx);
+                      const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+                      if (textarea) {
+                        textarea.value = text;
+                        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                      }
+                    }}
+                  />
                   <TriageBadge triageResult={triageResult} />
                 </div>
+              </div>
 
-                {/* ROW 3: Full Width Execution Pipeline Animation Stepper */}
-                <div style={{ width: "100%" }}>
-                  <AgentStatusBadge currentStep={pipelineStep} />
-                </div>
+              {/* FULL WIDTH ROW 2: Execution Pipeline Animation Stepper */}
+              <div style={{ width: "100%" }}>
+                <AgentStatusBadge currentStep={pipelineStep} />
+              </div>
 
-                {/* ROW 4: Full Width Documentation Quality Score Box */}
-                <div style={{ width: "100%" }}>
-                  <QualityMeter score={qualityScore} />
-                </div>
+              {/* FULL WIDTH ROW 3: Documentation Quality Score Box */}
+              <div style={{ width: "100%" }}>
+                <QualityMeter score={qualityScore} />
+              </div>
 
-                {/* ROW 5: Left = SOAP Notes Box, Right = Patient Follow-Up Box */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24, alignItems: "start" }}>
-                  {/* Left: Structured SOAP Note Box */}
+              {/* WORKSPACE GRID ROW 4: Left = Structured SOAP Note Box, Right = Patient Follow-Up Box */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24, alignItems: "stretch" }}>
+                <div style={{ height: "100%" }}>
                   <SOAPPreview
                     soapNote={soapNote}
                     patientData={patientData}
                     cleanedTranscript={cleanedTranscript}
                   />
+                </div>
 
-                  {/* Right: Patient Follow-Up Box (Full Width Copy Button Only) */}
+                <div style={{ height: "100%" }}>
                   <FollowUpPanel followUp={followUp} />
                 </div>
               </div>
@@ -229,10 +227,10 @@ export default function Home() {
           {activeTab === "encounters" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f4f4f5", margin: 0 }}>Encounters & Records</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#ffffff", margin: 0 }}>Encounters & Records</h1>
                 <p style={{ fontSize: 13, color: "#a1a1aa", margin: "4px 0 0" }}>Patient encounter history database records</p>
               </div>
-              <HistorySidebar onSelectSession={handleSelectHistorySession} activeSessionId={activeSessionId} />
+              <HistorySidebar onSelectSession={handleSelectHistorySession} activeSessionId={activeSessionId} localSessions={localSessions} />
             </div>
           )}
 
@@ -240,10 +238,10 @@ export default function Home() {
           {activeTab === "differentials" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f4f4f5", margin: 0 }}>Differential Diagnosis</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#ffffff", margin: 0 }}>Differential Diagnosis</h1>
                 <p style={{ fontSize: 13, color: "#a1a1aa", margin: "4px 0 0" }}>Ranked diagnostic likelihood evaluation</p>
               </div>
-              <DifferentialPanel differentials={differentialDiagnoses} />
+              <DifferentialPanel differentials={differentialDiagnoses} historySessions={localSessions} />
             </div>
           )}
 
@@ -251,10 +249,10 @@ export default function Home() {
           {activeTab === "icd10" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f4f4f5", margin: 0 }}>ICD-10-CM Coding</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#ffffff", margin: 0 }}>ICD-10-CM Coding</h1>
                 <p style={{ fontSize: 13, color: "#a1a1aa", margin: "4px 0 0" }}>Automated diagnostic code mapping</p>
               </div>
-              <ICD10Panel suggestions={icd10Suggestions} />
+              <ICD10Panel suggestions={icd10Suggestions} historySessions={localSessions} />
             </div>
           )}
 
@@ -262,47 +260,39 @@ export default function Home() {
           {activeTab === "followup" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f4f4f5", margin: 0 }}>Patient Care Summary</h1>
+                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#ffffff", margin: 0 }}>Patient Care Summary</h1>
                 <p style={{ fontSize: 13, color: "#a1a1aa", margin: "4px 0 0" }}>Plain-language follow-up instructions</p>
               </div>
               <FollowUpPanel followUp={followUp} />
             </div>
           )}
 
-          {/* TAB 6: SAFETY PROTOCOLS */}
+          {/* TAB 6: SAFETY PROTOCOLS & HIPAA COMPLIANCE */}
           {activeTab === "safety" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: "#f4f4f5", margin: 0 }}>Safety Protocols & Triage</h1>
-                <p style={{ fontSize: 13, color: "#a1a1aa", margin: "4px 0 0" }}>Automated clinical safety evaluation rules</p>
-              </div>
-              <TriageBadge triageResult={triageResult} />
-            </div>
+            <SafetyProtocols />
           )}
 
-          {/* EMPTY STATE TEMPLATE COMPONENTS WITH "NO DATA AVAILABLE" LABELS */}
-          {activeTab === "templates" && (
-            <EmptyStateTemplate title="AI Templates" description="No data available for AI templates." />
-          )}
-
+          {/* TAB 7: PATIENTS DIRECTORY */}
           {activeTab === "patients" && (
-            <EmptyStateTemplate title="Patients Directory" description="No data available for patients directory." />
+            <PatientsDirectory
+              sessions={localSessions}
+              onSelectPatientEncounter={(s) => setSelectedPatientModalSession(s)}
+            />
           )}
 
+          {/* TAB 8: NOTE LIBRARY */}
           {activeTab === "notelibrary" && (
-            <EmptyStateTemplate title="Note Library" description="No data available for note library." />
-          )}
-
-          {activeTab === "help" && (
-            <EmptyStateTemplate title="Help & Support" description="No data available for help & support." />
-          )}
-
-          {activeTab === "settings" && (
-            <EmptyStateTemplate title="Workspace Settings" description="No data available for workspace settings." />
+            <NoteLibrary patientNames={dynamicPatientNames} />
           )}
 
         </div>
       </div>
+
+      {/* POPUP MODAL ENCOUNTER CARD */}
+      <PatientModal
+        session={selectedPatientModalSession}
+        onClose={() => setSelectedPatientModalSession(null)}
+      />
     </div>
   );
 }
