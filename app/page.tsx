@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarNav } from "@/components/SidebarNav";
 import { HeaderBar } from "@/components/HeaderBar";
 import { IntakeForm, PresetsCard } from "@/components/IntakeForm";
@@ -24,7 +24,7 @@ import {
   ICD10Suggestion,
   QualityScore,
 } from "@/lib/agent/state";
-import { SessionRecord } from "@/lib/supabase/db";
+import { fetchClinicalSessions, SessionRecord } from "@/lib/supabase/db";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("overview");
@@ -42,6 +42,36 @@ export default function Home() {
   const [activePreset, setActivePreset] = useState<number | null>(null);
   const [localSessions, setLocalSessions] = useState<SessionRecord[]>([]);
   const [selectedPatientModalSession, setSelectedPatientModalSession] = useState<SessionRecord | null>(null);
+
+  // Automatically hydrate all historical sessions from Supabase database on page load/reload
+  useEffect(() => {
+    async function hydrateSessionsFromDatabase() {
+      const records = await fetchClinicalSessions(50);
+      if (records && records.length > 0) {
+        setLocalSessions(records);
+        const latest = records[0];
+        if (latest) {
+          if (!soapNote && latest.soap_note) setSoapNote(latest.soap_note);
+          if (!followUp && latest.follow_up) setFollowUp(latest.follow_up);
+          if (!triageResult && latest.triage_level) {
+            setTriageResult({
+              triage_level: latest.triage_level,
+              flags: latest.triage_flags || [],
+              recommendation: `Encounter record loaded from database history.`,
+              confidence: 85,
+            });
+          }
+          if (!differentialDiagnoses && latest.differentials && latest.differentials.length > 0) {
+            setDifferentialDiagnoses(latest.differentials);
+          }
+          if (!icd10Suggestions && latest.icd10 && latest.icd10.length > 0) {
+            setIcd10Suggestions(latest.icd10);
+          }
+        }
+      }
+    }
+    hydrateSessionsFromDatabase();
+  }, []);
 
   const handleRunAgent = async (rawInput: string) => {
     setErrorMsg(null);
