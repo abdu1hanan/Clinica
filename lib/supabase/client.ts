@@ -1,14 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const isConfigured =
-  supabaseUrl &&
+  rawUrl &&
   supabaseAnonKey &&
-  !supabaseUrl.includes("your-project") &&
-  supabaseUrl.startsWith("http");
+  !rawUrl.includes("your-project") &&
+  rawUrl.startsWith("http");
+
+const cleanUrl = rawUrl ? rawUrl.trim().replace(/\/+$/, "") : "";
 
 export const supabaseClient = isConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(cleanUrl, supabaseAnonKey)
   : null;

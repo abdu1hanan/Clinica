@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Copy, Check } from "lucide-react";
+import { Mail, Copy, Check, CheckCircle2 } from "lucide-react";
 import { PatientFollowUp } from "@/lib/agent/state";
 
 interface FollowUpPanelProps {
@@ -11,7 +11,25 @@ interface FollowUpPanelProps {
 export function FollowUpPanel({ followUp }: FollowUpPanelProps) {
   const [copied, setCopied] = useState(false);
 
-  if (!followUp) return null;
+  if (!followUp) {
+    return (
+      <div className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Mail style={{ width: 15, height: 15, color: "#2dd4bf" }} />
+            <div>
+              <h4 style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5", margin: 0 }}>Patient follow-up</h4>
+              <p style={{ fontSize: 11, color: "#71717a", margin: 0 }}>Plain-language care instructions</p>
+            </div>
+          </div>
+          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#27272a", color: "#a1a1aa" }}>
+            Reading level: 6th grade
+          </span>
+        </div>
+        <p style={{ fontSize: 11, color: "#52525b", margin: 0 }}>No patient follow-up data available. Execute an intake encounter to generate instructions.</p>
+      </div>
+    );
+  }
 
   const handleCopy = () => {
     navigator.clipboard.writeText(`Subject: ${followUp.subject}\n\n${followUp.body}`);
@@ -19,58 +37,68 @@ export function FollowUpPanel({ followUp }: FollowUpPanelProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const bodyLines = followUp.body.split("\n").filter(l => l.trim().length > 0);
+
   return (
-    <div className="card" style={{ overflow: "hidden" }}>
+    <div className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a", display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Header */}
-      <div style={{
-        padding: "10px 14px", borderBottom: "1px solid var(--border-light)",
-        background: "var(--bg-subtle)", boxShadow: "0 1px 0 rgba(255,255,255,0.8)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Mail style={{ width: 14, height: 14, color: "var(--teal-mid)" }} />
+          <Mail style={{ width: 15, height: 15, color: "#2dd4bf" }} />
           <div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>
-              Patient Follow-Up Instructions
-            </span>
-            <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>
-              Plain-language post-visit care summary
-            </p>
+            <h4 style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5", margin: 0 }}>Patient follow-up</h4>
+            <p style={{ fontSize: 11, color: "#71717a", margin: 0 }}>Plain-language post-encounter summary</p>
           </div>
         </div>
-        <button
-          onClick={handleCopy}
-          className="btn-raised"
-          style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11 }}
-        >
-          {copied
-            ? <><Check style={{ width: 12, height: 12, color: "var(--green-mid)" }} /> Copied!</>
-            : <><Copy style={{ width: 12, height: 12 }} /> Copy Draft</>
-          }
-        </button>
+        <span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: "#27272a", color: "#a1a1aa" }}>
+          Reading level: 6th grade
+        </span>
       </div>
 
-      {/* Email preview */}
-      <div style={{ padding: 14 }}>
-        {/* Subject line */}
-        <div className="inset-panel" style={{ padding: "7px 12px", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="section-label">Subject:</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{followUp.subject}</span>
+      {/* Instruction List Card */}
+      <div style={{
+        background: "#121215",
+        border: "1px solid #27272a",
+        borderRadius: 10,
+        padding: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#f4f4f5" }}>
+          {followUp.subject}
         </div>
 
-        {/* Body */}
-        <div style={{
-          background: "white", border: "1px solid var(--border-light)", borderRadius: 8,
-          padding: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.8)",
-        }}>
-          <p style={{
-            fontSize: 12, color: "var(--text-secondary)", margin: 0,
-            lineHeight: 1.8, whiteSpace: "pre-line",
-          }}>
-            {followUp.body}
-          </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {bodyLines.map((line, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <CheckCircle2 style={{ width: 14, height: 14, color: "#2dd4bf", flexShrink: 0, marginTop: 2 }} />
+              <p style={{ fontSize: 11, color: "#a1a1aa", margin: 0, lineHeight: 1.5 }}>
+                {line.replace(/^[\s•\-\d\.]+\s*/, "")}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Full Width Copy Button ONLY */}
+      <button
+        onClick={handleCopy}
+        className="btn-raised"
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          padding: "9px 14px",
+          fontSize: 12,
+          fontWeight: 600,
+        }}
+      >
+        {copied ? <Check style={{ width: 13, height: 13, color: "#4ade80" }} /> : <Copy style={{ width: 13, height: 13 }} />}
+        {copied ? "Copied Follow-up Draft" : "Copy Follow-up Draft"}
+      </button>
     </div>
   );
 }

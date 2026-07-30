@@ -12,6 +12,9 @@ interface HistorySidebarProps {
 export function HistorySidebar({ onSelectSession, activeSessionId }: HistorySidebarProps) {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const loadHistory = async () => {
     setLoading(true);
@@ -23,41 +26,41 @@ export function HistorySidebar({ onSelectSession, activeSessionId }: HistorySide
   useEffect(() => { loadHistory(); }, [activeSessionId]);
 
   const triageStyle = (level: string) => ({
-    HIGH: { background: "#fee2e2", border: "1px solid #fca5a5", color: "#7f1d1d" },
-    MEDIUM: { background: "#fef3c7", border: "1px solid #fcd34d", color: "#78350f" },
-    LOW: { background: "#dcfce7", border: "1px solid #86efac", color: "#14532d" },
-  }[level] ?? { background: "var(--bg-subtle)", border: "1px solid var(--border-light)", color: "var(--text-muted)" });
+    HIGH: { background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#f87171" },
+    MEDIUM: { background: "rgba(245,158,11,0.2)", border: "1px solid rgba(245,158,11,0.4)", color: "#fbbf24" },
+    LOW: { background: "rgba(34,197,94,0.2)", border: "1px solid rgba(34,197,94,0.4)", color: "#4ade80" },
+  }[level] ?? { background: "#27272a", border: "1px solid #3f3f46", color: "#a1a1aa" });
 
   return (
-    <div className="card" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 10, borderBottom: "1px solid var(--border-light)" }}>
+    <div className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingBottom: 10, borderBottom: "1px solid #27272a" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-          <Database style={{ width: 14, height: 14, color: "var(--blue-mid)" }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>Patient Records</span>
-          <History style={{ width: 11, height: 11, color: "var(--text-muted)" }} />
+          <Database style={{ width: 15, height: 15, color: "#60a5fa" }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5" }}>Patient Encounter Records</span>
+          <History style={{ width: 12, height: 12, color: "#71717a" }} />
         </div>
         <button
           onClick={loadHistory}
-          style={{ fontSize: 10, fontWeight: 600, color: "var(--teal-dark)", background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.06em" }}
+          style={{ fontSize: 10, fontWeight: 600, color: "#2dd4bf", background: "none", border: "none", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.06em" }}
         >
           Refresh
         </button>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: "20px 0", color: "var(--text-muted)", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        <div style={{ textAlign: "center", padding: "20px 0", color: "#71717a", fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <Clock style={{ width: 12, height: 12 }} className="animate-spin" />
-          Syncing records...
+          Syncing encounters...
         </div>
       ) : sessions.length === 0 ? (
         <div style={{
-          textAlign: "center", padding: "20px 0", fontSize: 11, color: "var(--text-placeholder)",
-          border: "2px dashed var(--border-light)", borderRadius: 8,
+          textAlign: "center", padding: "24px 12px", fontSize: 11, color: "#52525b",
+          border: "1px dashed #27272a", borderRadius: 8, background: "#121215",
         }}>
-          No session records found in database.
+          No encounter records available in database.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 280, overflowY: "auto" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
           {sessions.map((s) => {
             const isSelected = activeSessionId === s.id;
             const ts = triageStyle(s.triage_level);
@@ -66,33 +69,32 @@ export function HistorySidebar({ onSelectSession, activeSessionId }: HistorySide
                 key={s.id}
                 onClick={() => onSelectSession(s)}
                 style={{
-                  width: "100%", textAlign: "left", padding: "9px 10px", borderRadius: 8,
-                  border: isSelected ? "1px solid var(--teal-border)" : "1px solid var(--border-light)",
-                  background: isSelected ? "var(--teal-bg)" : "white",
-                  boxShadow: isSelected ? "0 1px 4px rgba(13,148,136,0.12)" : "0 1px 2px rgba(0,0,0,0.04)",
+                  width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 8,
+                  border: isSelected ? "1px solid #2dd4bf" : "1px solid #27272a",
+                  background: isSelected ? "rgba(45,212,191,0.1)" : "#121215",
                   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
                   transition: "all 0.15s",
                 }}
               >
                 <div style={{ minWidth: 0, paddingRight: 8, display: "flex", flexDirection: "column", gap: 3 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <User style={{ width: 11, height: 11, color: "var(--text-muted)", flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <User style={{ width: 12, height: 12, color: "#71717a", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#f4f4f5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {s.patient_name || "Anonymous Patient"}
                     </span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--text-muted)", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: "#71717a", fontFamily: "'IBM Plex Mono', monospace" }}>
                     <Clock style={{ width: 10, height: 10, flexShrink: 0 }} />
-                    <span>
-                      {new Date(s.created_at).toLocaleDateString()} {new Date(s.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    <span suppressHydrationWarning>
+                      {mounted ? `${new Date(s.created_at).toLocaleDateString()} ${new Date(s.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Recent Encounter"}
                     </span>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
                   <span style={{ padding: "2px 7px", borderRadius: 4, fontSize: 8, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", ...ts }}>
                     {s.triage_level}
                   </span>
-                  <ChevronRight style={{ width: 12, height: 12, color: "var(--text-muted)" }} />
+                  <ChevronRight style={{ width: 13, height: 13, color: "#71717a" }} />
                 </div>
               </button>
             );

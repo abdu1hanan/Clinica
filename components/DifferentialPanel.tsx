@@ -8,42 +8,53 @@ interface DifferentialPanelProps {
 }
 
 const LIKELIHOOD_STYLE = {
-  "Most Likely": { bg: "#f0fdf4", border: "#86efac", text: "#14532d", badge: "#16a34a" },
-  "Possible": { bg: "#eff6ff", border: "#93c5fd", text: "#1e3a5f", badge: "#2563eb" },
-  "Less Likely": { bg: "var(--bg-subtle)", border: "var(--border-light)", text: "var(--text-secondary)", badge: "var(--text-muted)" },
+  "Most Likely": { bg: "rgba(34,197,94,0.1)", border: "rgba(74,222,128,0.3)", text: "#4ade80", badge: "#16a34a" },
+  "Possible": { bg: "rgba(59,130,246,0.1)", border: "rgba(96,165,250,0.3)", text: "#60a5fa", badge: "#2563eb" },
+  "Less Likely": { bg: "#121215", border: "#27272a", text: "#a1a1aa", badge: "#52525b" },
 };
 
 export function DifferentialPanel({ differentials }: DifferentialPanelProps) {
-  if (!differentials || differentials.length === 0) return null;
+  if (!differentials || differentials.length === 0) {
+    return (
+      <div className="card" style={{ padding: 18, background: "#18181b", border: "1px solid #27272a" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <GitBranch style={{ width: 15, height: 15, color: "#c084fc" }} />
+          <h4 style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5", margin: 0 }}>Differential Diagnosis</h4>
+        </div>
+        <p style={{ fontSize: 11, color: "#52525b", margin: 0 }}>
+          No differential diagnosis data available. Execute an intake encounter to generate ranked diagnostic differentials.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="card" style={{ overflow: "hidden" }}>
+    <div className="card" style={{ overflow: "hidden", background: "#18181b", border: "1px solid #27272a" }}>
       {/* Header */}
       <div style={{
-        padding: "10px 14px", borderBottom: "1px solid var(--border-light)",
-        background: "var(--bg-subtle)", boxShadow: "0 1px 0 rgba(255,255,255,0.8)",
+        padding: "12px 16px", borderBottom: "1px solid #27272a",
+        background: "#18181b",
         display: "flex", alignItems: "center", gap: 8,
       }}>
-        <GitBranch style={{ width: 14, height: 14, color: "var(--purple-mid)" }} />
+        <GitBranch style={{ width: 15, height: 15, color: "#c084fc" }} />
         <div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-primary)" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#f4f4f5" }}>
             Differential Diagnosis
           </span>
-          <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 8 }}>
+          <span style={{ fontSize: 11, color: "#71717a", marginLeft: 8 }}>
             Ranked clinical likelihood analysis
           </span>
         </div>
       </div>
 
       {/* Differentials */}
-      <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         {differentials.map((diff) => {
           const style = LIKELIHOOD_STYLE[diff.likelihood] ?? LIKELIHOOD_STYLE["Less Likely"];
           return (
             <div key={diff.rank} style={{
               border: `1px solid ${style.border}`, borderRadius: 9,
               background: style.bg, overflow: "hidden",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
             }}>
               {/* Dx Header */}
               <div style={{
@@ -57,7 +68,7 @@ export function DifferentialPanel({ differentials }: DifferentialPanelProps) {
                     background: style.badge, color: "white",
                     fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center",
                   }}>{diff.rank}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: style.text }}>{diff.diagnosis}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5" }}>{diff.diagnosis}</span>
                 </div>
                 <span style={{
                   fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
@@ -69,46 +80,43 @@ export function DifferentialPanel({ differentials }: DifferentialPanelProps) {
 
               {/* Evidence */}
               <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-                {/* Supporting */}
                 {diff.supporting_evidence.length > 0 && (
                   <div>
-                    <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#166534", display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#4ade80", display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
                       <CheckCircle style={{ width: 10, height: 10 }} /> Supporting Evidence
                     </span>
                     <div style={{ paddingLeft: 14, display: "flex", flexDirection: "column", gap: 2 }}>
                       {diff.supporting_evidence.map((e, i) => (
-                        <p key={i} style={{ fontSize: 11, color: "#166534", margin: 0, lineHeight: 1.5 }}>• {e}</p>
+                        <p key={i} style={{ fontSize: 11, color: "#a1a1aa", margin: 0, lineHeight: 1.5 }}>• {e}</p>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Contradicting */}
                 {diff.contradicting_evidence.length > 0 && (
                   <div>
-                    <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#92400e", display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#fbbf24", display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
                       <XCircle style={{ width: 10, height: 10 }} /> Against
                     </span>
                     <div style={{ paddingLeft: 14, display: "flex", flexDirection: "column", gap: 2 }}>
                       {diff.contradicting_evidence.map((e, i) => (
-                        <p key={i} style={{ fontSize: 11, color: "#92400e", margin: 0, lineHeight: 1.5 }}>• {e}</p>
+                        <p key={i} style={{ fontSize: 11, color: "#a1a1aa", margin: 0, lineHeight: 1.5 }}>• {e}</p>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Ruling Out Test */}
                 <div style={{
                   display: "flex", alignItems: "flex-start", gap: 6,
-                  background: "rgba(255,255,255,0.7)", borderRadius: 6,
-                  padding: "6px 10px", border: "1px solid rgba(255,255,255,0.9)",
+                  background: "#121215", borderRadius: 6,
+                  padding: "6px 10px", border: "1px solid #27272a",
                 }}>
-                  <FlaskConical style={{ width: 11, height: 11, color: "var(--purple-mid)", flexShrink: 0, marginTop: 1 }} />
+                  <FlaskConical style={{ width: 11, height: 11, color: "#c084fc", flexShrink: 0, marginTop: 1 }} />
                   <div>
-                    <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--purple-dark)" }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#c084fc" }}>
                       Rule-Out Test
                     </span>
-                    <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>{diff.ruling_out_test}</p>
+                    <p style={{ fontSize: 11, color: "#a1a1aa", margin: 0 }}>{diff.ruling_out_test}</p>
                   </div>
                 </div>
               </div>

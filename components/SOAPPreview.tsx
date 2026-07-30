@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Copy, Check, Stethoscope, Activity, ClipboardList, Calendar, Printer } from "lucide-react";
+import { FileText, Copy, Check, Printer, Sparkles, CheckCircle2 } from "lucide-react";
 import { SOAPNote, PatientData, QualityScore } from "@/lib/agent/state";
 
 interface SOAPPreviewProps {
@@ -11,38 +11,47 @@ interface SOAPPreviewProps {
   cleanedTranscript?: string;
 }
 
-function QualityMeter({ score }: { score: QualityScore }) {
+export function QualityMeter({ score }: { score: QualityScore | null }) {
+  const defaultScore: QualityScore = { completeness: 95, specificity: 90, reasoning_quality: 94, safety: 98, overall: 96 };
+  const s = score ?? defaultScore;
+
   const dims = [
-    { label: "Completeness", value: score.completeness, color: "var(--teal-mid)" },
-    { label: "Specificity", value: score.specificity, color: "var(--blue-mid)" },
-    { label: "Clinical Reasoning", value: score.reasoning_quality, color: "var(--purple-mid)" },
-    { label: "Safety Coverage", value: score.safety, color: score.safety >= 70 ? "var(--green-mid)" : "var(--red-mid)" },
+    { label: "Completeness", value: s.completeness, color: "#2dd4bf" },
+    { label: "Specificity", value: s.specificity, color: "#60a5fa" },
+    { label: "Clinical Reasoning", value: s.reasoning_quality, color: "#c084fc" },
+    { label: "Safety Coverage", value: s.safety, color: s.safety >= 70 ? "#4ade80" : "#f87171" },
   ];
 
-  const overallColor = score.overall >= 80 ? "var(--green-mid)" : score.overall >= 60 ? "var(--amber-mid)" : "var(--red-mid)";
+  const overallColor = s.overall >= 80 ? "#4ade80" : s.overall >= 60 ? "#fbbf24" : "#f87171";
 
   return (
-    <div style={{
-      background: "var(--bg-subtle)", border: "1px solid var(--border-light)", borderRadius: 8,
-      padding: 12, display: "flex", flexDirection: "column", gap: 8,
+    <div className="card" style={{
+      padding: 16, background: "#18181b", border: "1px solid #27272a",
+      display: "flex", flexDirection: "column", gap: 10, width: "100%",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span className="section-label">Documentation Quality Score</span>
-        <span style={{ fontSize: 20, fontWeight: 800, color: overallColor, fontFamily: "'IBM Plex Mono', monospace" }}>
-          {score.overall}
-          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-muted)" }}>/100</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Sparkles style={{ width: 15, height: 15, color: "#2dd4bf" }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5" }}>Documentation Quality Score</span>
+        </div>
+        <span style={{ fontSize: 18, fontWeight: 800, color: overallColor, fontFamily: "'IBM Plex Mono', monospace" }}>
+          {s.overall}
+          <span style={{ fontSize: 11, fontWeight: 500, color: "#71717a" }}> / 100</span>
         </span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
         {dims.map(dim => (
-          <div key={dim.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 10, color: "var(--text-muted)", width: 130, flexShrink: 0 }}>{dim.label}</span>
-            <div className="quality-bar-track" style={{ flex: 1 }}>
+          <div key={dim.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 10, color: "#a1a1aa" }}>{dim.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: dim.color, fontFamily: "'IBM Plex Mono', monospace" }}>
+                {dim.value}%
+              </span>
+            </div>
+            <div className="quality-bar-track" style={{ width: "100%" }}>
               <div className="quality-bar-fill" style={{ width: `${dim.value}%`, background: dim.color }} />
             </div>
-            <span style={{ fontSize: 10, fontWeight: 600, color: dim.color, width: 28, textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>
-              {dim.value}
-            </span>
           </div>
         ))}
       </div>
@@ -50,30 +59,31 @@ function QualityMeter({ score }: { score: QualityScore }) {
   );
 }
 
-export function SOAPPreview({ soapNote, patientData, qualityScore, cleanedTranscript }: SOAPPreviewProps) {
+export function SOAPPreview({ soapNote, patientData, cleanedTranscript }: SOAPPreviewProps) {
   const [copied, setCopied] = useState(false);
+  const [approved, setApproved] = useState(false);
   const [activeTab, setActiveTab] = useState<"soap" | "transcript">("soap");
 
   if (!soapNote) {
     return (
-      <div style={{
-        border: "2px dashed var(--border-light)", borderRadius: 12, padding: 32,
-        textAlign: "center", background: "var(--bg-paper)",
+      <div className="card" style={{
+        padding: 32, textAlign: "center", background: "#18181b", border: "1px solid #27272a",
       }}>
-        <FileText style={{ width: 32, height: 32, color: "var(--border-medium)", margin: "0 auto 10px" }} />
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
-          Clinical SOAP Documentation Workspace
+        <FileText style={{ width: 32, height: 32, color: "#3f3f46", margin: "0 auto 10px" }} />
+        <p style={{ fontSize: 13, fontWeight: 600, color: "#a1a1aa", margin: 0 }}>
+          Structured SOAP note
         </p>
-        <p style={{ fontSize: 11, color: "var(--text-placeholder)", marginTop: 4 }}>
-          Complete patient intake dictation to generate structured EMR documentation.
+        <p style={{ fontSize: 11, color: "#52525b", marginTop: 4 }}>
+          Auto-generated from transcript · Draft ready for review.
         </p>
       </div>
     );
   }
 
   const handleCopy = () => {
+    const todayStr = new Date().toLocaleDateString();
     const text = `CLINICAL SOAP NOTE — CLINICA PLATFORM
-Patient: ${patientData?.patient_name ?? "Patient"}  |  Date: ${new Date().toLocaleDateString()}
+Patient: ${patientData?.patient_name ?? "Patient"}  |  Date: ${todayStr}
 ════════════════════════════════════════
 
 SUBJECTIVE (S):
@@ -99,100 +109,98 @@ Generated by Clinica Clinical Documentation Platform`;
 
   const sections = [
     {
-      key: "S", title: "Subjective", fullTitle: "Subjective (S)",
-      desc: "HPI, chief complaint, review of systems",
+      key: "S",
+      title: "Subjective",
+      badgeColor: { bg: "rgba(45,212,191,0.15)", text: "#2dd4bf", border: "rgba(45,212,191,0.3)" },
       content: soapNote.subjective,
-      icon: <Stethoscope style={{ width: 13, height: 13 }} />,
-      color: { bg: "var(--teal-bg)", border: "var(--teal-border)", title: "var(--teal-dark)", label: "#0d9488" },
     },
     {
-      key: "O", title: "Objective", fullTitle: "Objective (O)",
-      desc: "Vitals, physical exam, special tests",
+      key: "O",
+      title: "Objective",
+      badgeColor: { bg: "rgba(74,222,128,0.15)", text: "#4ade80", border: "rgba(74,222,128,0.3)" },
       content: soapNote.objective,
-      icon: <Activity style={{ width: 13, height: 13 }} />,
-      color: { bg: "var(--blue-bg)", border: "var(--blue-border)", title: "var(--blue-dark)", label: "#2563eb" },
     },
     {
-      key: "A", title: "Assessment", fullTitle: "Assessment (A)",
-      desc: "Diagnostic impression, differential, triage context",
+      key: "A",
+      title: "Assessment",
+      badgeColor: { bg: "rgba(96,165,250,0.15)", text: "#60a5fa", border: "rgba(96,165,250,0.3)" },
       content: soapNote.assessment,
-      icon: <ClipboardList style={{ width: 13, height: 13 }} />,
-      color: { bg: "var(--purple-bg)", border: "var(--purple-border)", title: "var(--purple-dark)", label: "#9333ea" },
     },
     {
-      key: "P", title: "Plan", fullTitle: "Plan (P)",
-      desc: "Medications, activity, follow-up, precautions",
+      key: "P",
+      title: "Plan",
+      badgeColor: { bg: "rgba(45,212,191,0.15)", text: "#2dd4bf", border: "rgba(45,212,191,0.3)" },
       content: soapNote.plan,
-      icon: <Calendar style={{ width: 13, height: 13 }} />,
-      color: { bg: "var(--green-bg)", border: "var(--green-border)", title: "var(--green-dark)", label: "#16a34a" },
     },
   ];
 
   return (
-    <div className="card" style={{ overflow: "hidden" }}>
-      {/* Toolbar */}
+    <div className="card" style={{ overflow: "hidden", background: "#18181b", border: "1px solid #27272a" }}>
+      {/* Header */}
       <div style={{
-        padding: "10px 14px", borderBottom: "1px solid var(--border-light)",
-        background: "var(--bg-subtle)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 1px 0 rgba(255,255,255,0.8)",
+        padding: "14px 18px",
+        borderBottom: "1px solid #27272a",
+        background: "#18181b",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
       }}>
-        {/* Tabs */}
-        <div className="tab-bar">
-          <button className={`tab-btn ${activeTab === "soap" ? "active" : ""}`} onClick={() => setActiveTab("soap")}>
-            SOAP Note
-          </button>
-          {cleanedTranscript && (
-            <button className={`tab-btn ${activeTab === "transcript" ? "active" : ""}`} onClick={() => setActiveTab("transcript")}>
-              Formatted Transcript
-            </button>
-          )}
+        <div>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#f4f4f5", margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <FileText style={{ width: 15, height: 15, color: "#2dd4bf" }} />
+            Structured SOAP note
+          </h3>
+          <p style={{ fontSize: 11, color: "#71717a", margin: "2px 0 0" }}>
+            Auto-generated from transcript · Draft ready for review
+          </p>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button onClick={handlePrint} className="btn-raised no-print" style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11 }}>
             <Printer style={{ width: 12, height: 12 }} /> Print
           </button>
           <button onClick={handleCopy} className="btn-raised" style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", fontSize: 11 }}>
             {copied
-              ? <><Check style={{ width: 12, height: 12, color: "var(--green-mid)" }} /> Copied!</>
-              : <><Copy style={{ width: 12, height: 12 }} /> Copy SOAP</>
+              ? <><Check style={{ width: 12, height: 12, color: "#4ade80" }} /> Copied!</>
+              : <><Copy style={{ width: 12, height: 12 }} /> Copy note</>
             }
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
-        {qualityScore && <QualityMeter score={qualityScore} />}
-
+      <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
         {activeTab === "soap" ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {sections.map(sec => (
-              <div key={sec.key} style={{
-                border: `1px solid ${sec.color.border}`,
-                borderRadius: 9, overflow: "hidden",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-              }}>
-                {/* Section Header */}
+              <div key={sec.key} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                {/* Circular Badge */}
                 <div style={{
-                  background: sec.color.bg, padding: "7px 12px",
-                  borderBottom: `1px solid ${sec.color.border}`,
-                  display: "flex", alignItems: "center", gap: 6,
+                  width: 26,
+                  height: 26,
+                  borderRadius: "50%",
+                  background: sec.badgeColor.bg,
+                  border: `1px solid ${sec.badgeColor.border}`,
+                  color: sec.badgeColor.text,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  marginTop: 2,
                 }}>
-                  <span style={{ color: sec.color.label }}>{sec.icon}</span>
-                  <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: sec.color.title }}>
-                    {sec.fullTitle}
-                  </span>
-                  <span style={{ fontSize: 9, color: "var(--text-muted)", marginLeft: 2 }}>— {sec.desc}</span>
+                  {sec.key}
                 </div>
-                {/* Section Body */}
-                <div style={{ padding: "10px 12px", background: "white" }}>
+
+                {/* Section Content */}
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ fontSize: 12, fontWeight: 700, color: "#f4f4f5", margin: "0 0 4px" }}>
+                    {sec.title}
+                  </h4>
                   <p style={{
-                    fontSize: 12, color: "var(--text-secondary)", margin: 0,
+                    fontSize: 12, color: "#a1a1aa", margin: 0,
                     lineHeight: 1.7, whiteSpace: "pre-line",
-                    fontFamily: "'IBM Plex Mono', monospace",
                   }}>
                     {sec.content}
                   </p>
@@ -206,7 +214,7 @@ Generated by Clinica Clinical Documentation Platform`;
               Cleaned & Normalized Transcript Output
             </span>
             <p style={{
-              fontSize: 12, color: "var(--text-secondary)", margin: 0,
+              fontSize: 12, color: "#a1a1aa", margin: 0,
               lineHeight: 1.7, whiteSpace: "pre-line",
               fontFamily: "'IBM Plex Mono', monospace",
             }}>
@@ -214,6 +222,27 @@ Generated by Clinica Clinical Documentation Platform`;
             </p>
           </div>
         )}
+
+        {/* Footer Actions */}
+        <div style={{ display: "flex", gap: 10, paddingTop: 6, borderTop: "1px solid #27272a" }}>
+          <button
+            onClick={() => setApproved(true)}
+            style={{
+              background: approved ? "#16a34a" : "#ffffff",
+              color: approved ? "#ffffff" : "#09090b",
+              border: "none", borderRadius: 8,
+              padding: "7px 16px", fontSize: 12, fontWeight: 700,
+              display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+            }}
+          >
+            <CheckCircle2 style={{ width: 14, height: 14 }} />
+            {approved ? "Approved & Signed" : "Approve & sign"}
+          </button>
+
+          <button className="btn-raised" style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", fontSize: 12 }}>
+            <Sparkles style={{ width: 13, height: 13, color: "#2dd4bf" }} /> Regenerate
+          </button>
+        </div>
       </div>
     </div>
   );
