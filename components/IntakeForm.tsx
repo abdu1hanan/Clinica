@@ -40,7 +40,6 @@ export function PresetsCard({ onSelectPreset, activePreset }: PresetsCardProps) 
           <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "#222226", color: "#a1a1aa" }}>5 Presets</span>
         </div>
 
-        {/* Slightly visible white hr line */}
         <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "10px 0 12px" }} />
       </div>
 
@@ -71,17 +70,26 @@ export function PresetsCard({ onSelectPreset, activePreset }: PresetsCardProps) 
 }
 
 interface IntakeFormProps {
+  inputText: string;
+  setInputText: (text: string) => void;
   onRunAgent: (input: string) => Promise<void>;
   isLoading: boolean;
+  activePreset: number | null;
+  setActivePreset: (idx: number | null) => void;
 }
 
-export function IntakeForm({ onRunAgent, isLoading }: IntakeFormProps) {
-  const [inputText, setInputText] = useState("");
+export function IntakeForm({
+  inputText,
+  setInputText,
+  onRunAgent,
+  isLoading,
+  activePreset,
+  setActivePreset,
+}: IntakeFormProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [activePreset, setActivePreset] = useState<number | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -144,7 +152,7 @@ export function IntakeForm({ onRunAgent, isLoading }: IntakeFormProps) {
       const res = await fetch("/api/transcribe", { method: "POST", body: formData });
       const data = await res.json();
       if (res.ok && data.text) {
-        setInputText((prev) => (prev ? `${prev}\n\n${data.text}` : data.text));
+        setInputText(inputText ? `${inputText}\n\n${data.text}` : data.text);
       } else {
         alert(data.error || "Speech transcription failed.");
       }
@@ -201,11 +209,10 @@ export function IntakeForm({ onRunAgent, isLoading }: IntakeFormProps) {
           </div>
         </div>
 
-        {/* Slightly visible white hr line */}
         <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "6px 0 8px" }} />
 
         <div style={{ fontSize: 11, color: "#71717a", margin: 0 }}>
-          Encounter: {activePreset !== null ? CLINICAL_PRESETS[activePreset].label : "Marcus Bell · 47M · General consult"}
+          Encounter: {activePreset !== null ? CLINICAL_PRESETS[activePreset].label : "General Consultation"}
         </div>
 
         {/* Timer & Waveform */}
@@ -293,7 +300,6 @@ export function IntakeForm({ onRunAgent, isLoading }: IntakeFormProps) {
               </span>
             )}
           </div>
-          {/* Slightly visible white hr line */}
           <hr style={{ border: "none", borderTop: "1px solid rgba(255, 255, 255, 0.08)", margin: "10px 0 0" }} />
         </div>
 

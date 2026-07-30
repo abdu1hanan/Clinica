@@ -29,6 +29,7 @@ import { fetchClinicalSessions, SessionRecord } from "@/lib/supabase/db";
 export default function Home() {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [pipelineStep, setPipelineStep] = useState<PipelineStep>("idle");
+  const [inputText, setInputText] = useState<string>("");
   const [cleanedTranscript, setCleanedTranscript] = useState<string>("");
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [triageResult, setTriageResult] = useState<TriageResult | null>(null);
@@ -179,7 +180,7 @@ export default function Home() {
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
                 <div>
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#2dd4bf" }}>
-                    THURSDAY, JULY 30
+                    FRIDAY, JULY 31
                   </span>
                   <h1 style={{ fontSize: 26, fontWeight: 800, color: "#ffffff", margin: "4px 0 2px", letterSpacing: "-0.02em" }}>
                     Good morning, Abdul Hanan.
@@ -207,19 +208,22 @@ export default function Home() {
               {/* WORKSPACE GRID ROW 1 */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 24, alignItems: "stretch" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", height: "100%" }}>
-                  <IntakeForm onRunAgent={handleRunAgent} isLoading={isRunning} />
+                  <IntakeForm
+                    inputText={inputText}
+                    setInputText={setInputText}
+                    onRunAgent={handleRunAgent}
+                    isLoading={isRunning}
+                    activePreset={activePreset}
+                    setActivePreset={setActivePreset}
+                  />
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%", height: "100%" }}>
                   <PresetsCard
                     activePreset={activePreset}
                     onSelectPreset={(text, idx) => {
+                      setInputText(text);
                       setActivePreset(idx);
-                      const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
-                      if (textarea) {
-                        textarea.value = text;
-                        textarea.dispatchEvent(new Event("input", { bubbles: true }));
-                      }
                     }}
                   />
                   <TriageBadge triageResult={triageResult} />
